@@ -44,17 +44,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/personnes/{id}/interpellations', [PersonneController::class, 'addInterpellation']);
     Route::get('/personnes-statistics', [PersonneController::class, 'statistics']);
     
-    // Utilisateurs
-    Route::apiResource('users', UserController::class);
-    Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
-    Route::post('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
-    Route::get('/users-statistics', [UserController::class, 'statistics']);
-    
     // Rapports
     Route::get('/rapports', [RapportController::class, 'index']);
     Route::post('/rapports/incidents/{id}', [RapportController::class, 'generateIncidentReport']);
     Route::get('/rapports/{id}/download', [RapportController::class, 'download']);
     Route::get('/rapports-statistics', [RapportController::class, 'statistics']);
+    
+    // Utilisateurs (Admin seulement)
+    Route::apiResource('users', UserController::class);
+    Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
+    Route::post('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+    Route::get('/users-statistics', [UserController::class, 'statistics']);
 });
 
 // Route de test

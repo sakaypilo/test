@@ -31,6 +31,8 @@ const NewIncidentView: React.FC = () => {
     idCamera: '',
     photos: [null, null, null, null, null, null] as (File | null)[]
   })
+  
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   // Charger les caméras au montage du composant
   useEffect(() => {
@@ -57,9 +59,14 @@ const NewIncidentView: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setSubmitError(null)
     
     try {
-      const dateTime = new Date(`${form.date}T${form.time}`).toISOString()
+      console.log('Début de soumission du formulaire')
+      
+      // Créer la date/heure en format ISO compatible avec MySQL
+      const dateTime = `${form.date} ${form.time}:00`
+      console.log('Date/heure formatée:', dateTime)
       
       const incidentData = new FormData()
       incidentData.append('dateHeure', dateTime)
@@ -68,22 +75,31 @@ const NewIncidentView: React.FC = () => {
       incidentData.append('zone', form.zone)
       incidentData.append('idCamera', form.idCamera)
       
+      console.log('Données de base ajoutées à FormData')
+      
       // Ajouter les photos
       form.photos.forEach((photo, index) => {
         if (photo) {
           incidentData.append(`photos[${index}]`, photo)
+          console.log(`Photo ${index} ajoutée:`, photo.name)
         }
       })
+      console.log('Photos ajoutées à FormData')
+      
+      // Log du contenu de FormData pour debug
+      for (let pair of incidentData.entries()) {
+        console.log(pair[0], pair[1])
+      }
       
       const result = await createIncident(incidentData)
       
       if (result.success) {
         navigate('/incidents')
       } else {
-        console.error('Erreur lors de la création:', result.error)
+        setSubmitError(result.error || 'Erreur lors de la création de l\'incident')
       }
     } catch (error) {
-      console.error('Erreur lors de l\'enregistrement:', error)
+      setSubmitError('Erreur de connexion. Veuillez réessayer.')
     } finally {
       setIsSubmitting(false)
     }
@@ -136,6 +152,12 @@ const NewIncidentView: React.FC = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="card space-y-6">
+              {submitError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-700 text-sm">{submitError}</p>
+                </div>
+              )}
+              
               {/* Type d'incident */}
               <div>
                 <label htmlFor="typeIncident" className="block text-sm font-medium text-secondary-700 mb-2">

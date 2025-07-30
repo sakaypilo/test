@@ -23,6 +23,12 @@ class Incident extends Model
         'photo4',
         'photo5',
         'photo6',
+        'photo1',
+        'photo2',
+        'photo3',
+        'photo4',
+        'photo5',
+        'photo6',
         'statut',
         'idCamera',
         'idUtilisateur',
@@ -34,6 +40,10 @@ class Incident extends Model
     protected $casts = [
         'dateHeure' => 'datetime',
         'dateValidation' => 'datetime',
+    ];
+    
+    protected $attributes = [
+        'statut' => 'en_attente',
     ];
 
     // Relations
