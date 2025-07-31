@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import { authAPI, LoginRequest } from '../services/api'
 
 // Type global pour le rôle
@@ -24,17 +25,53 @@ interface AuthState {
   token: string | null
   isAuthenticated: boolean
   isLoading: boolean
+  isInitialized: boolean
   login: (matricule: string, motDePasse: string) => Promise<{ success: boolean; error?: string }>
   logout: () => void
   checkAuth: () => Promise<void>
+  initialize: () => void
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
   user: null,
-  token: localStorage.getItem('token'),
-  isAuthenticated: !!localStorage.getItem('token'),
+  token: null,
+  isAuthenticated: false,
   isLoading: false,
+  isInitialized: false,
 
+  initialize: () => {
+    const token = localStorage.getItem('token')
+    const storedUser = localStorage.getItem('user')
+    
+    if (token && storedUser) {
+      try {
+        const user = JSON.parse(storedUser)
+        if (isValidRole(user.role)) {
+          set({
+            user,
+            token,
+            isAuthenticated: true,
+            isInitialized: true
+          })
+          return
+        }
+      } catch (error) {
+        console.error('Erreur parsing user:', error)
+      }
+    }
+    
+    // Si pas de données valides, nettoyer
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    set({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      isInitialized: true
+    })
+  },
   login: async (matricule: string, motDePasse: string) => {
     set({ isLoading: true })
 
@@ -108,16 +145,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   checkAuth: async () => {
-    const token = localStorage.getItem('token')
-    const storedUser = localStorage.getItem('user')
+    const { token, user } = get()
 
-    if (token && storedUser) {
+    if (token && user) {
       try {
-        const userParsed = JSON.parse(storedUser)
-        if (!isValidRole(userParsed.role)) {
-          get().logout()
-          return
-        }
 
         const response = await authAPI.me()
         if (response.success && response.data) {
@@ -131,7 +162,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           const user: User = { ...apiUser, role: apiUser.role }
 
           set({
-            user,
+            user: updatedUser,
             token,
             isAuthenticated: true
           })
@@ -145,4 +176,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     }
   }
-}))
+}),
+    {
+      name: 'auth-storage',
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+        isAuthenticated: state.isAuthenticated
+      })
+    }
+  )
+)

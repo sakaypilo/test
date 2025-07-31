@@ -11,18 +11,27 @@ import PersonsView from './views/PersonsView'
 import UsersView from './views/UsersView'
 
 function App() {
-  const { token, user, logout } = useAuthStore()
+  const { token, user, logout, isInitialized, initialize } = useAuthStore()
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Vérifier si l'utilisateur est connecté au démarrage
-    if (token && !user) {
-      // Ici, vous pourriez faire un appel API pour récupérer les infos utilisateur
-      // Pour la démo, on redirige vers login
-      logout()
-      navigate('/login')
+    // Initialiser l'authentification au démarrage
+    if (!isInitialized) {
+      initialize()
     }
-  }, [token, user, logout, navigate])
+  }, [isInitialized, initialize])
+
+  // Afficher un loader pendant l'initialisation
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen bg-secondary-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+          <p className="text-secondary-600">Chargement...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-secondary-50">

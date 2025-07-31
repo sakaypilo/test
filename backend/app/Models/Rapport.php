@@ -19,7 +19,6 @@ class Rapport extends Model
         'dateCreation',
         'validePar',
         'idIncident',
-        'idVol',
         'observations'
     ];
 
@@ -38,10 +37,6 @@ class Rapport extends Model
         return $this->belongsTo(Incident::class, 'idIncident', 'idIncident');
     }
 
-    public function vol()
-    {
-        return $this->belongsTo(Vol::class, 'idVol', 'idVol');
-    }
 
     // Scopes
     public function scopeIncident($query)
@@ -49,8 +44,4 @@ class Rapport extends Model
         return $query->where('typeRapport', 'incident');
     }
 
-    public function scopeVol($query)
-    {
-        return $query->where('typeRapport', 'vol');
-    }
 }

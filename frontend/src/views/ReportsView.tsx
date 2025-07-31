@@ -13,6 +13,7 @@ const ReportsView: React.FC = () => {
   const [selectedIncident, setSelectedIncident] = useState<any>(null)
   const [reportNotes, setReportNotes] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const { incidents, fetchIncidents } = useIncidentsStore()
   const { user } = useAuthStore()
@@ -41,49 +42,46 @@ const ReportsView: React.FC = () => {
     setSelectedIncident(incident)
     setShowGenerateForm(true)
     setReportNotes('')
+    setError(null)
   }
 
   const confirmGenerateReport = async () => {
     if (!selectedIncident) return
     
     setIsGenerating(true)
+    setError(null)
     
     try {
       const reportData = {
-        idIncident: selectedIncident.idIncident,
-        notes: reportNotes,
-        idUtilisateur: user?.idUtilisateur
+        observations: reportNotes
       }
 
       const response = await rapportsAPI.generateIncidentReport(selectedIncident.idIncident, reportData)
       
       if (response.success) {
         // Recharger la liste des rapports
-        fetchReports()
-        
-        console.log('Rapport généré pour l\'incident:', selectedIncident.idIncident)
-        console.log('Notes:', reportNotes)
-        console.log('Validé par:', user?.nom, user?.prenom)
+        await fetchReports()
         
         setShowGenerateForm(false)
         setSelectedIncident(null)
+        setReportNotes('')
       } else {
-        console.error('Erreur lors de la génération:', response.message)
+        setError(response.message || 'Erreur lors de la génération du rapport')
       }
     } catch (error) {
-      console.error('Erreur lors de la génération:', error)
+      setError('Erreur de connexion lors de la génération du rapport')
     } finally {
       setIsGenerating(false)
     }
   }
 
   const downloadReport = (incidentId: number) => {
-    // Simulation du téléchargement
-    const reportName = `Rapport_Incident_${incidentId}_${new Date().toISOString().split('T')[0]}.pdf`
-    console.log('Téléchargement du rapport:', reportName)
-    
-    // Ici, vous implémenteriez la génération et le téléchargement réel du PDF
-    alert(`Téléchargement du rapport: ${reportName}`)
+    const report = generatedReports?.find((r: any) => r.idIncident === incidentId)
+    if (report) {
+      // Créer un lien de téléchargement
+      const downloadUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/rapports/${report.idRapport}/download`
+      window.open(downloadUrl, '_blank')
+    }
   }
 
   if (reportsLoading) {
@@ -227,6 +225,46 @@ const ReportsView: React.FC = () => {
             </div>
           </div>
 
+          {/* Statistiques des rapports */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="card">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-secondary-600">Rapports générés</p>
+                  <p className="text-2xl font-bold text-secondary-900">{generatedReports?.length || 0}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="card">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-secondary-600">Incidents validés</p>
+                  <p className="text-2xl font-bold text-secondary-900">{validatedIncidents.length}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="card">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-yellow-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-secondary-600">En attente de rapport</p>
+                  <p className="text-2xl font-bold text-secondary-900">
+                    {validatedIncidents.filter(i => !hasReport(i.idIncident)).length}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
           {/* Report Generation Modal */}
           {showGenerateForm && selectedIncident && (
             <div
@@ -254,6 +292,12 @@ const ReportsView: React.FC = () => {
                   <div className="space-y-6">
                     <div className="bg-secondary-50 p-4 rounded-lg">
                       <h4 className="font-medium text-secondary-900 mb-3">Aperçu du rapport</h4>
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                      <p className="text-red-700 text-sm">{error}</p>
+                    </div>
+                  )}
+                  
                       
                       <div className="space-y-3 text-sm">
                         <div className="grid grid-cols-2 gap-4">
@@ -302,6 +346,11 @@ const ReportsView: React.FC = () => {
                     </div>
                     
                     <div>
+                        
+                        <div>
+                          <span className="font-medium">Validé par:</span>
+                          {user?.prenom} {user?.nom} ({user?.role})
+                        </div>
                       <label className="block text-sm font-medium text-secondary-700 mb-2">
                         Observations complémentaires
                       </label>
@@ -333,6 +382,13 @@ const ReportsView: React.FC = () => {
                 </div>
               </div>
             </div>
+            
+            {validatedIncidents.length === 0 && (
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 text-secondary-300 mx-auto mb-4" />
+                <p className="text-secondary-500">Aucun incident validé disponible pour rapport</p>
+              </div>
+            )}
           )}
         </main>
       </div>

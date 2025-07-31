@@ -16,13 +16,11 @@ return new class extends Migration
             $table->datetime('dateCreation');
             $table->unsignedBigInteger('validePar');
             $table->unsignedBigInteger('idIncident')->nullable();
-            $table->unsignedBigInteger('idVol')->nullable();
             $table->text('observations')->nullable();
             $table->timestamps();
 
             $table->foreign('validePar')->references('idUtilisateur')->on('users');
             $table->foreign('idIncident')->references('idIncident')->on('incidents');
-            $table->foreign('idVol')->references('idVol')->on('vols');
         });
     }
 

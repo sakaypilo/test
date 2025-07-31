@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Rapport;
 use App\Models\Incident;
-use App\Models\Vol;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
@@ -14,7 +13,7 @@ class RapportController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Rapport::with(['validateur', 'incident.camera', 'vol.camera']);
+        $query = Rapport::with(['validateur', 'incident.camera']);
 
         // Filtres
         if ($request->has('type')) {
