@@ -142,8 +142,8 @@ export const rapportsAPI = {
     api.get('/rapports').then(res => res.data),
   generateIncidentReport: (incidentId: number, data: any): Promise<ApiResponse> =>
     api.post(`/rapports/incidents/${incidentId}`, data).then(res => res.data),
-  downloadReport: (reportId: number): Promise<ApiResponse> =>
-    api.get(`/rapports/${reportId}/download`).then(res => res.data),
+  downloadReport: (reportId: number): Promise<Blob> =>
+    api.get(`/rapports/${reportId}/download`, { responseType: 'blob' }).then(res => res.data),
 }
 
 export const usersAPI = {

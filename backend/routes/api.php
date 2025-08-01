@@ -47,7 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Rapports
     Route::get('/rapports', [RapportController::class, 'index']);
     Route::post('/rapports/incidents/{id}', [RapportController::class, 'generateIncidentReport']);
-    Route::get('/rapports/{id}/download', [RapportController::class, 'download']);
+    Route::get('/rapports/{id}/download', [RapportController::class, 'download'])->name('rapports.download');
     Route::get('/rapports-statistics', [RapportController::class, 'statistics']);
     
     // Utilisateurs (Admin seulement)
