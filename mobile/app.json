@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "SMMC Security",
+    "slug": "smmc-security",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#00A550"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.smmc.security"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#00A550"
+      },
+      "package": "com.smmc.security",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow SMMC Security to access your camera to take photos of incidents."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow SMMC Security to access your photos to attach evidence to incidents.",
+          "savePhotosPermission": "Allow SMMC Security to save photos to your gallery."
+        }
+      ]
+    ]
+  }
+}
