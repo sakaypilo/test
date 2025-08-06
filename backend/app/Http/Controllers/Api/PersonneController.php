@@ -164,6 +164,28 @@ class PersonneController extends Controller
         ]);
     }
 
+    public function destroy($id)
+{
+    $personne = Personne::findOrFail($id);
+
+    // Vérifier les permissions
+    if (!in_array(auth()->user()->role, ['admin', 'responsable'])) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Permission refusée pour supprimer une personne.'
+        ], 403);
+    }
+
+    $personne->actif = false;
+    $personne->save();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Personne supprimée avec succès (logiquement).'
+    ]);
+}
+
+
     public function addInterpellation(Request $request, $id)
     {
         $request->validate([

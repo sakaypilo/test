@@ -35,14 +35,16 @@ export default function ReportsScreen() {
         setReports(reportsResponse.data);
       }
 
-      if (incidentsResponse.success) {
-        setValidatedIncidents(incidentsResponse.data);
-      }
+      Alert.alert(
+        'Téléchargement',
+        'Le téléchargement de rapports PDF n\'est pas disponible sur mobile. Utilisez la version web pour télécharger les rapports.',
+        [{ text: 'OK' }]
+      );
     } catch (error) {
       console.error('Erreur chargement rapports:', error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
+      Alert.alert('Erreur', 'Fonctionnalité non disponible sur mobile');
     }
   };
 

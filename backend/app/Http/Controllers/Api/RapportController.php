@@ -160,7 +160,18 @@ class RapportController extends Controller
                 }
             }
 
-            return Storage::disk('public')->download($rapport->fichierPDF);
+            $filePath = Storage::disk('public')->path($rapport->fichierPDF);
+            
+            if (!file_exists($filePath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Fichier PDF non trouvé'
+                ], 404);
+            }
+
+            return response()->download($filePath, 'rapport_incident_' . $rapport->idIncident . '.pdf', [
+                'Content-Type' => 'application/pdf',
+            ]);
         } catch (\Exception $e) {
             Log::error('Erreur téléchargement rapport', ['error' => $e->getMessage()]);
             return response()->json([

@@ -3,6 +3,8 @@ import { useCamerasStore } from '../stores/cameras'
 import { useAuthStore } from '../stores/auth'
 import Sidebar from '../components/layout/Sidebar'
 import Header from '../components/layout/Header'
+import { camerasAPI } from '../services/api'
+
 import {
   Camera,
   Plus,
@@ -17,6 +19,9 @@ import {
 const CamerasView: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [selectedCamera, setSelectedCamera] = useState<any>(null)
+  const [showCameraDetails, setShowCameraDetails] = useState(false)
+  const [editingCamera, setEditingCamera] = useState<any>(null)
 
   const { cameras, getCamerasByStatus, fetchCameras, createCamera, isLoading, error } = useCamerasStore()
   const { user } = useAuthStore()
@@ -31,6 +36,68 @@ const CamerasView: React.FC = () => {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+
+  const viewCamera = (camera: any) => {
+    setSelectedCamera(camera)
+    setShowCameraDetails(true)
+  }
+
+  const editCamera = (camera: any) => {
+    setEditingCamera(camera)
+    setNewCamera({
+      numeroSerie: camera.numeroSerie,
+      adresseIP: camera.adresseIP,
+      zone: camera.zone,
+      emplacement: camera.emplacement,
+      statut: camera.statut,
+      dateInstallation: camera.dateInstallation.split('T')[0]
+    })
+    setShowAddForm(true)
+  }
+
+  const handleUpdateCamera = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingCamera) return
+    
+    setIsSubmitting(true)
+    setSubmitError(null)
+    
+    try {
+      const cameraData = {
+        numeroSerie: newCamera.numeroSerie.trim(),
+        adresseIP: newCamera.adresseIP.trim(),
+        zone: newCamera.zone,
+        emplacement: newCamera.emplacement.trim(),
+        statut: newCamera.statut
+      }
+
+      const response = await camerasAPI.update(editingCamera.idCamera, cameraData)
+      
+      if (response.success) {
+        setNewCamera({
+          numeroSerie: '',
+          adresseIP: '',
+          zone: '',
+          emplacement: '',
+          statut: 'actif' as const,
+          dateInstallation: new Date().toISOString().split('T')[0]
+        })
+        
+        setShowAddForm(false)
+        setEditingCamera(null)
+        setSubmitError(null)
+        
+        await fetchCameras()
+      } else {
+        setSubmitError(response.message || 'Erreur lors de la mise à jour de la caméra')
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error)
+      setSubmitError('Erreur de connexion. Veuillez réessayer.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   // Charger les caméras au montage du composant
   useEffect(() => {
@@ -255,12 +322,18 @@ const CamerasView: React.FC = () => {
                 </div>
                 
                 <div className="flex space-x-2">
-                  <button className="btn-secondary flex-1 text-sm">
+                  <button 
+                    onClick={() => viewCamera(camera)}
+                    className="btn-secondary flex-1 text-sm"
+                  >
                     <Eye className="w-4 h-4 mr-1" />
                     Voir
                   </button>
                   {canManageCameras && (
-                    <button className="btn-secondary text-sm">
+                    <button 
+                      onClick={() => editCamera(camera)}
+                      className="btn-secondary text-sm"
+                    >
                       <Settings className="w-4 h-4" />
                     </button>
                   )}
@@ -281,16 +354,22 @@ const CamerasView: React.FC = () => {
               >
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-secondary-900">Ajouter une caméra</h3>
+                    <h3 className="text-lg font-semibold text-secondary-900">
+                      {editingCamera ? 'Modifier la caméra' : 'Ajouter une caméra'}
+                    </h3>
                     <button
-                      onClick={() => setShowAddForm(false)}
+                      onClick={() => {
+                        setShowAddForm(false)
+                        setEditingCamera(null)
+                        setSubmitError(null)
+                      }}
                       className="text-secondary-400 hover:text-secondary-600"
                     >
                       <X className="w-5 h-5" />
                     </button>
                   </div>
                   
-                  <form onSubmit={handleAddCamera} className="space-y-4">
+                  <form onSubmit={editingCamera ? handleUpdateCamera : handleAddCamera} className="space-y-4">
                     {submitError && (
                       <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                         <p className="text-red-700 text-sm">{submitError}</p>
@@ -367,20 +446,42 @@ const CamerasView: React.FC = () => {
                       />
                     </div>
                     
-                    <div>
-                      <label className="block text-sm font-medium text-secondary-700 mb-2">
-                        Date d'installation *
-                      </label>
-                      <input
-                        name="dateInstallation"
-                        type="date"
-                        value={newCamera.dateInstallation}
-                        onChange={handleInputChange}
-                        className="input-field"
-                        required
-                        disabled={isSubmitting}
-                      />
-                    </div>
+                    {editingCamera && (
+                      <div>
+                        <label className="block text-sm font-medium text-secondary-700 mb-2">
+                          Statut *
+                        </label>
+                        <select 
+                          name="statut" 
+                          value={newCamera.statut} 
+                          onChange={handleInputChange}
+                          className="input-field" 
+                          required
+                          disabled={isSubmitting}
+                        >
+                          <option value="actif">Actif</option>
+                          <option value="panne">En panne</option>
+                          <option value="hors ligne">Hors ligne</option>
+                        </select>
+                      </div>
+                    )}
+                    
+                    {!editingCamera && (
+                      <div>
+                        <label className="block text-sm font-medium text-secondary-700 mb-2">
+                          Date d'installation *
+                        </label>
+                        <input
+                          name="dateInstallation"
+                          type="date"
+                          value={newCamera.dateInstallation}
+                          onChange={handleInputChange}
+                          className="input-field"
+                          required
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                    )}
                     
                     <div className="flex space-x-3 pt-4">
                       <button 
@@ -388,12 +489,16 @@ const CamerasView: React.FC = () => {
                         className="btn-primary flex-1"
                         disabled={isSubmitting}
                       >
-                        {isSubmitting ? 'Enregistrement...' : 'Ajouter'}
+                        {isSubmitting 
+                          ? (editingCamera ? 'Modification...' : 'Enregistrement...') 
+                          : (editingCamera ? 'Modifier' : 'Ajouter')
+                        }
                       </button>
                       <button
                         type="button"
                         onClick={() => {
                           setShowAddForm(false)
+                          setEditingCamera(null)
                           setSubmitError(null)
                         }}
                         className="btn-secondary px-6"
@@ -403,6 +508,116 @@ const CamerasView: React.FC = () => {
                       </button>
                     </div>
                   </form>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Camera Details Modal */}
+          {showCameraDetails && selectedCamera && (
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+              onClick={() => setShowCameraDetails(false)}
+            >
+              <div
+                className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-secondary-900">
+                      Détails de la caméra {selectedCamera.numeroSerie}
+                    </h3>
+                    <button
+                      onClick={() => setShowCameraDetails(false)}
+                      className="text-secondary-400 hover:text-secondary-600"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-6">
+                    {/* Informations générales */}
+                    <div>
+                      <h4 className="font-medium text-secondary-900 mb-3">Informations générales</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-secondary-700">Numéro de série</label>
+                          <p className="text-secondary-900">{selectedCamera.numeroSerie}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-secondary-700">Adresse IP</label>
+                          <p className="text-secondary-900">{selectedCamera.adresseIP}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-secondary-700">Zone</label>
+                          <p className="text-secondary-900">{selectedCamera.zone}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-secondary-700">Statut</label>
+                          <span
+                            className={`status-badge ${
+                              selectedCamera.statut === 'actif' ? 'status-active' :
+                              selectedCamera.statut === 'panne' ? 'status-inactive' : 'status-pending'
+                            }`}
+                          >
+                            {selectedCamera.statut}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Emplacement */}
+                    <div>
+                      <h4 className="font-medium text-secondary-900 mb-3">Emplacement</h4>
+                      <p className="text-secondary-900 bg-secondary-50 p-3 rounded-lg">
+                        {selectedCamera.emplacement}
+                      </p>
+                    </div>
+
+                    {/* Installation */}
+                    <div>
+                      <h4 className="font-medium text-secondary-900 mb-3">Installation</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-secondary-700">Date d'installation</label>
+                          <p className="text-secondary-900">
+                            {new Date(selectedCamera.dateInstallation).toLocaleDateString('fr-FR')}
+                          </p>
+                        </div>
+                        {selectedCamera.technicien && (
+                          <div>
+                            <label className="block text-sm font-medium text-secondary-700">Technicien responsable</label>
+                            <p className="text-secondary-900">
+                              {selectedCamera.technicien.prenom} {selectedCamera.technicien.nom}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex space-x-3 pt-4 border-t">
+                      {canManageCameras && (
+                        <button
+                          onClick={() => {
+                            setShowCameraDetails(false)
+                            editCamera(selectedCamera)
+                          }}
+                          className="btn-primary"
+                        >
+                          <Settings className="w-4 h-4 mr-2" />
+                          Modifier
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setShowCameraDetails(false)}
+                        className="btn-secondary"
+                      >
+                        Fermer
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

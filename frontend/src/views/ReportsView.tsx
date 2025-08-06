@@ -90,17 +90,29 @@ const ReportsView: React.FC = () => {
     try {
       const report = generatedReports?.find((r: any) => r.idIncident === incidentId)
       if (report) {
-        // Créer un lien de téléchargement
-        const downloadUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/rapports/${report.idRapport}/download`
-        
-        // Ouvrir dans un nouvel onglet pour téléchargement
-        const link = document.createElement('a')
-        link.href = downloadUrl
-        link.target = '_blank'
-        link.download = `rapport_incident_${incidentId}.pdf`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
+        // Télécharger le fichier via l'API
+        const token = localStorage.getItem('token')
+        const response = await fetch(`http://localhost:8000/api/rapports/${report.idRapport}/download`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/pdf',
+          },
+        })
+
+        if (response.ok) {
+          const blob = await response.blob()
+          const url = window.URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = `rapport_incident_${incidentId}.pdf`
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
+        } else {
+          throw new Error('Erreur lors du téléchargement')
+        }
       }
     } catch (error) {
       console.error('Erreur téléchargement:', error)

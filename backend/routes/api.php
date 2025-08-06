@@ -43,7 +43,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('personnes', PersonneController::class);
     Route::post('/personnes/{id}/interpellations', [PersonneController::class, 'addInterpellation']);
     Route::get('/personnes-statistics', [PersonneController::class, 'statistics']);
-    
+    Route::delete('/personnes/{id}', [PersonneController::class, 'destroy']);
+
+
     // Rapports
     Route::get('/rapports', [RapportController::class, 'index']);
     Route::post('/rapports/incidents/{id}', [RapportController::class, 'generateIncidentReport']);

@@ -17,9 +17,17 @@ class Personne extends Model
         'prenom',
         'CIN',
         'statut',
-        'photo'
+        'photo',
+        'actif', 
     ];
 
+    protected static function booted()
+    {
+        static::addGlobalScope('actif', function ($query) {
+            $query->where('actif', true);
+        });
+    }
+    
     // Relations
     public function interpellations()
     {

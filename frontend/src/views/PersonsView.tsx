@@ -65,6 +65,24 @@ const PersonsView: React.FC = () => {
     setSelectedPerson(person)
   }
 
+  const deletePerson = async (id: number) => {
+  const confirmDelete = window.confirm("Confirmer la suppression de cette personne ?");
+  if (!confirmDelete) return;
+
+  try {
+    const response = await personnesAPI.delete(id);
+    if (response.data.success) {
+      fetchPersons(); // Recharge la liste après suppression
+    } else {
+      alert(response.data.message || "Échec de la suppression.");
+    }
+  } catch (error) {
+    console.error("Erreur lors de la suppression logique:", error);
+    alert("Une erreur est survenue.");
+  }
+}
+
+
   const addInterpellation = (person: any) => {
     // Pré-remplir les données de la personne existante
     setNewPerson({ ...person })
