@@ -18,6 +18,7 @@ const UsersView: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   // Utiliser les API réelles au lieu des données de démonstration
   const { 
@@ -60,6 +61,7 @@ const UsersView: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setSubmitError(null)
     
     try {
       const userData = new FormData()
@@ -69,7 +71,7 @@ const UsersView: React.FC = () => {
       userData.append('role', userForm.role)
       userData.append('email', userForm.email)
       userData.append('telephone', userForm.telephone)
-      userData.append('motDePasse', userForm.motDePasse)
+      userData.append('motDePasse', userForm.motDePasse) // motDePasse only on creation
 
       const response = await usersAPI.create(userData)
       
@@ -89,11 +91,12 @@ const UsersView: React.FC = () => {
         })
         
         setShowAddForm(false)
+        setEditingUser(null)
       } else {
-        console.error('Erreur lors de la création:', response.message)
+        setSubmitError(response.message || 'Erreur lors de la création de l\'utilisateur')
       }
     } catch (error) {
-      console.error('Erreur lors de l\'enregistrement:', error)
+      setSubmitError('Erreur de connexion. Veuillez réessayer.')
     } finally {
       setIsSubmitting(false)
     }
@@ -111,29 +114,34 @@ const UsersView: React.FC = () => {
       motDePasse: ''
     })
     setShowAddForm(true)
+    setSubmitError(null)
   }
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingUser) return
-    
+
     setIsSubmitting(true)
-    
+    setSubmitError(null)
+
     try {
-      const userData = new FormData()
-      userData.append('matricule', userForm.matricule)
-      userData.append('nom', userForm.nom)
-      userData.append('prenom', userForm.prenom)
-      userData.append('role', userForm.role)
-      userData.append('email', userForm.email)
-      userData.append('telephone', userForm.telephone)
+      // Déclare userData avec let ou const avant de l'utiliser
+      const userData: any = {
+        matricule: userForm.matricule,
+        nom: userForm.nom,
+        prenom: userForm.prenom,
+        role: userForm.role,
+        email: userForm.email,
+        telephone: userForm.telephone,
+        actif: true
+      }
 
       const response = await usersAPI.update(editingUser.idUtilisateur, userData)
-      
+
       if (response.success) {
         // Recharger la liste des utilisateurs
         fetchUsers()
-        
+
         setEditingUser(null)
         setUserForm({
           matricule: '',
@@ -144,42 +152,51 @@ const UsersView: React.FC = () => {
           telephone: '',
           motDePasse: ''
         })
-        
+
         setShowAddForm(false)
       } else {
-        console.error('Erreur lors de la mise à jour:', response.message)
+        setSubmitError(response.message || 'Erreur lors de la mise à jour de l\'utilisateur')
       }
     } catch (error) {
-      console.error('Erreur lors de la mise à jour:', error)
+      setSubmitError('Erreur de connexion. Veuillez réessayer.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleResetPassword = async (userId: number) => {
+    const confirmReset = window.confirm('Êtes-vous sûr de vouloir réinitialiser le mot de passe de cet utilisateur ?')
+    if (!confirmReset) return
+
     try {
       const response = await usersAPI.resetPassword(userId)
       if (response.success) {
-        alert(`Nouveau mot de passe temporaire: ${response.data?.temporary_password || 'Généré'}`)
+        alert(`Mot de passe réinitialisé avec succès!\nNouveau mot de passe temporaire: ${response.data?.temporary_password || 'Contactez l\'administrateur'}`)
       } else {
-        console.error('Erreur lors de la réinitialisation:', response.message)
+        alert(`Erreur: ${response.message || 'Erreur lors de la réinitialisation'}`)
       }
     } catch (error) {
-      console.error('Erreur lors de la réinitialisation:', error)
+      alert('Erreur de connexion lors de la réinitialisation du mot de passe')
     }
   }
 
   const handleToggleStatus = async (userId: number) => {
+    const user = users.find(u => u.idUtilisateur === userId)
+    const action = user?.actif ? 'désactiver' : 'activer'
+    const confirmToggle = window.confirm(`Êtes-vous sûr de vouloir ${action} cet utilisateur ?`)
+    if (!confirmToggle) return
+
     try {
       const response = await usersAPI.toggleStatus(userId)
       if (response.success) {
         // Recharger la liste des utilisateurs
         fetchUsers()
+        alert(`Utilisateur ${action} avec succès`)
       } else {
-        console.error('Erreur lors du changement de statut:', response.message)
+        alert(`Erreur: ${response.message || 'Erreur lors du changement de statut'}`)
       }
     } catch (error) {
-      console.error('Erreur lors du changement de statut:', error)
+      alert('Erreur de connexion lors du changement de statut')
     }
   }
 
@@ -352,6 +369,12 @@ const UsersView: React.FC = () => {
                   </div>
                   
                   <form onSubmit={editingUser ? handleUpdate : handleSubmit} className="space-y-4">
+                    {submitError && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                        <p className="text-red-700 text-sm">{submitError}</p>
+                      </div>
+                    )}
+                    
                     <div>
                       <label className="block text-sm font-medium text-secondary-700 mb-2">
                         Matricule *
@@ -472,7 +495,11 @@ const UsersView: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setShowAddForm(false)}
+                        onClick={() => {
+                          setShowAddForm(false)
+                          setEditingUser(null)
+                          setSubmitError(null)
+                        }}
                         className="btn-secondary px-6"
                       >
                         Annuler

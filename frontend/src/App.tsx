@@ -11,7 +11,7 @@ import PersonsView from './views/PersonsView'
 import UsersView from './views/UsersView'
 
 function App() {
-  const { token, user, logout, isInitialized, initialize } = useAuthStore()
+  const { token, user, isInitialized, initialize } = useAuthStore()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -20,6 +20,13 @@ function App() {
       initialize()
     }
   }, [isInitialized, initialize])
+
+  // Rediriger vers login si pas authentifié après initialisation
+  useEffect(() => {
+    if (isInitialized && !token) {
+      navigate('/login')
+    }
+  }, [isInitialized, token, navigate])
 
   // Afficher un loader pendant l'initialisation
   if (!isInitialized) {

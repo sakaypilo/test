@@ -149,7 +149,6 @@ export const useAuthStore = create<AuthState>()(
 
     if (token && user) {
       try {
-
         const response = await authAPI.me()
         if (response.success && response.data) {
           const apiUser = response.data
@@ -159,11 +158,10 @@ export const useAuthStore = create<AuthState>()(
             return
           }
 
-          const user: User = { ...apiUser, role: apiUser.role }
+          const updatedUser: User = { ...apiUser, role: apiUser.role }
 
           set({
             user: updatedUser,
-            token,
             isAuthenticated: true
           })
 
