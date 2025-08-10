@@ -5,18 +5,18 @@ export interface User {
   prenom: string;
   email: string;
   telephone: string;
-  role: 'agent' | 'technicien';
+  role: 'agent' | 'technicien' | 'responsable' | 'admin';
   isActive: boolean;
   lastLogin?: Date;
 }
 
 export interface Camera {
   id: string;
-  numero: string;
+  numero: string; // numeroSerie dans Laravel
   zone: string;
   emplacement: string;
-  ip: string;
-  statut: 'en_ligne' | 'hors_ligne' | 'maintenance';
+  ip: string; // adresseIP dans Laravel
+  statut: 'en_ligne' | 'hors_ligne' | 'maintenance'; // actif/panne/hors ligne dans Laravel
   dateInstallation: Date;
   latitude: number;
   longitude: number;
@@ -48,7 +48,7 @@ export interface Mutation {
 
 export interface Incident {
   id: string;
-  type: 'vol' | 'bagarre' | 'accident' | 'autre';
+  type: 'vol' | 'bagarre' | 'accident' | 'autre' | 'intrusion' | 'vol_suspect' | 'vandalisme';
   description: string;
   dateIncident: Date;
   zone: string;
@@ -57,7 +57,7 @@ export interface Incident {
   photos: string[];
   temoins: string[];
   mesuresPrises: string;
-  statut: 'en_cours' | 'clos';
+  statut: 'en_cours' | 'clos'; // en_attente/valide/rejete dans Laravel
   latitude?: number;
   longitude?: number;
   personnesImpliquees?: string[];

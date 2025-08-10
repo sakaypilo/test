@@ -42,7 +42,7 @@ export default function DashboardScreen() {
         setError(response.message || 'Erreur lors du chargement des données');
       }
     } catch (err) {
-      setError('Erreur de connexion au serveur');
+      setError('Erreur de connexion au serveur Laravel');
     } finally {
       setIsLoading(false);
       setRefreshing(false);

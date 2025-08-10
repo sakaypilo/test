@@ -50,7 +50,7 @@ export default function CamerasScreen() {
         setError(response.message || 'Erreur lors du chargement');
       }
     } catch (err) {
-      setError('Erreur de connexion au serveur');
+      setError('Erreur de connexion au serveur Laravel');
     } finally {
       setLoading(false);
       setRefreshing(false);

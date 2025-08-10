@@ -45,13 +45,13 @@ export default function EfaTratraScreen() {
       const response = await apiService.getEfaTratra();
       
       if (response.success && response.data) {
-        // Update store with API data
-        // setEfaTratra(response.data);
+        // Les données sont maintenant correctement adaptées depuis Laravel
+        console.log('Données Efa Tratra chargées:', response.data);
       } else {
         setError(response.message || 'Erreur lors du chargement');
       }
     } catch (err) {
-      setError('Erreur de connexion au serveur');
+      setError('Erreur de connexion au serveur Laravel');
     } finally {
       setLoading(false);
       setRefreshing(false);

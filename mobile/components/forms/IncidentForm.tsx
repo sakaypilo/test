@@ -55,7 +55,9 @@ export default function IncidentForm({
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const incidentTypes = [
-    { key: 'vol', label: 'Vol', icon: '🚨' },
+    { key: 'intrusion', label: 'Intrusion', icon: '🚨' },
+    { key: 'vol_suspect', label: 'Vol suspect', icon: '👀' },
+    { key: 'vandalisme', label: 'Vandalisme', icon: '🔨' },
     { key: 'bagarre', label: 'Bagarre', icon: '👊' },
     { key: 'accident', label: 'Accident', icon: '⚠️' },
     { key: 'autre', label: 'Autre', icon: '📝' },

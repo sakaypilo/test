@@ -1,13 +1,16 @@
 {
   "expo": {
-    "name": "bolt-expo-nativewind",
-    "slug": "bolt-expo-nativewind",
+    "name": "smmc-mobile-app",
+    "slug": "smmc-mobile-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "smmc",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "extra": {
+      "apiUrl": "http://localhost:8000/api"
+    },
     "ios": {
       "supportsTablet": true
     },
