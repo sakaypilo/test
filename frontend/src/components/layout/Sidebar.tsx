@@ -9,7 +9,7 @@ import {
   FileText, 
   Users, 
   UserCheck,
-  Settings,
+  // Settings,
   User,
   LogOut,
   X
@@ -44,7 +44,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
 
     if (user?.role === 'admin') {
       roleBasedItems.push({ name: 'Utilisateurs', path: '/users', icon: Users })
-      roleBasedItems.push({ name: 'Paramètres', path: '/settings', icon: Settings })
+      // roleBasedItems.push({ name: 'Paramètres', path: '/settings', icon: Settings })
     }
 
     return [...baseItems, ...roleBasedItems]
