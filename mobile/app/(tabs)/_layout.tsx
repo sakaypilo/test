@@ -34,7 +34,7 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="dashboard"
+        name="dashboard/index"
         options={{
           title: 'Tableau de Bord',
           tabBarIcon: ({ color, size }) => (
@@ -43,30 +43,26 @@ export default function TabLayout() {
         }}
       />
       
-      {user?.role === 'technicien' && (
-        <Tabs.Screen
-          name="cameras"
-          options={{
-            title: 'Caméras',
-            tabBarIcon: ({ color, size }) => (
-              <Camera size={isTablet ? size + 4 : size} color={color} />
-            ),
-          }}
-        />
-      )}
-      
-      {user?.role === 'agent' && (
-        <Tabs.Screen
-          name="incidents"
-          options={{
-            title: 'Incidents',
-            tabBarIcon: ({ color, size }) => (
-              <AlertTriangle size={isTablet ? size + 4 : size} color={color} />
-            ),
-          }}
-        />
-      )}
-      
+      <Tabs.Screen
+        name="cameras"
+        options={{
+          title: 'Caméras',
+          tabBarIcon: ({ color, size }) => (
+            <Camera size={isTablet ? size + 4 : size} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="incidents"
+        options={{
+          title: 'Incidents',
+          tabBarIcon: ({ color, size }) => (
+            <AlertTriangle size={isTablet ? size + 4 : size} color={color} />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="efa-tratra"
         options={{
@@ -78,7 +74,7 @@ export default function TabLayout() {
       />
       
       <Tabs.Screen
-        name="profile"
+        name="profile/index"
         options={{
           title: 'Profil',
           tabBarIcon: ({ color, size }) => (

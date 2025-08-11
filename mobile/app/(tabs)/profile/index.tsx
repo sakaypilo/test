@@ -6,22 +6,24 @@ import {
   ScrollView,
   Dimensions,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/auth';
 import { apiService } from '@/services/api';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Badge, 
+import ErrorMessage from '@/components/ui/ErrorMessage';
+import {
+  User,
+  Mail,
+  Phone,
+  Badge,
   Calendar,
   Settings,
   LogOut,
   Shield,
-  Download 
+  Download
 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');

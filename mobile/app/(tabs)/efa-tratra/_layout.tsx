@@ -8,8 +8,6 @@ export default function EfaTratraLayout() {
       }}
     >
       <Stack.Screen name="index" />
-      <Stack.Screen name="add" />
-      <Stack.Screen name="details" />
     </Stack>
   );
 }

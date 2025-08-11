@@ -32,7 +32,7 @@ export default function CamerasMapScreen() {
 
   const handleCalloutPress = (camera: any) => {
     setSelectedCamera(camera);
-    router.push('/(tabs)/cameras/details');
+    // No details screen currently
   };
 
   const getMarkerColor = (statut: string) => {

@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ImageBackground, Dimensions } from 'react-native';
-import { router } from 'expo-router';
+import { router, Redirect } from 'expo-router';
 import { useAuthStore } from '@/stores/auth';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -10,12 +10,14 @@ const { width, height } = Dimensions.get('window');
 export default function WelcomeScreen() {
   const { isAuthenticated, user } = useAuthStore();
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      router.replace('/(tabs)/dashboard');
-    }
-  }, [isAuthenticated, user]);
+  if (isAuthenticated && user) {
+    return <Redirect href="/(tabs)/dashboard" />;
+  }
 
+  // Par défaut, rediriger vers l'écran de login
+  return <Redirect href="/(auth)/login" />;
+
+  // Si vous voulez garder cet écran d'accueil, commentez la ligne ci-dessus et laissez le code ci-dessous.
   const handleLogin = () => {
     router.push('/(auth)/login');
   };

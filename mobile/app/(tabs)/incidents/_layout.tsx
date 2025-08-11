@@ -6,10 +6,6 @@ export default function IncidentsLayout() {
       screenOptions={{
         headerShown: false,
       }}
-    >
-      <Stack.Screen name="index" />
-      <Stack.Screen name="add" />
-      <Stack.Screen name="details" />
-    </Stack>
+    />
   );
 }

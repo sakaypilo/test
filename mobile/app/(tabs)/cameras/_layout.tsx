@@ -6,11 +6,6 @@ export default function CamerasLayout() {
       screenOptions={{
         headerShown: false,
       }}
-    >
-      <Stack.Screen name="index" />
-      <Stack.Screen name="add" />
-      <Stack.Screen name="details" />
-      <Stack.Screen name="map" />
-    </Stack>
+    />
   );
 }
