@@ -1,7 +1,42 @@
 import { ApiResponse, User, Camera, Incident, EfaTratra, DashboardStats } from '@/types';
 import { useAuthStore } from '@/stores/auth';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api';
+function resolveApiBaseUrl(): string {
+  let url =
+    ((Constants.expoConfig?.extra as any)?.apiUrl as string) ||
+    process.env.EXPO_PUBLIC_API_URL ||
+    'http://localhost:8000/api';
+
+  // Replace localhost with Android emulator loopback
+  if (Platform.OS === 'android') {
+    url = url.replace('127.0.0.1', '10.0.2.2').replace('localhost', '10.0.2.2');
+  }
+
+  return url;
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
+
+// Map backend incident type to strict union type
+type IncidentTypeUnion = Incident['type'];
+function mapIncidentType(input: any): IncidentTypeUnion {
+  const s = String(input || '').toLowerCase().replace(' ', '_');
+  switch (s) {
+    case 'vol':
+    case 'bagarre':
+    case 'accident':
+    case 'autre':
+    case 'intrusion':
+    case 'vol_suspect':
+    case 'vandalisme':
+      return s as IncidentTypeUnion;
+    default:
+      return 'autre';
+  }
+}
+
 
 class ApiService {
   private async makeRequest<T>(
@@ -10,7 +45,7 @@ class ApiService {
   ): Promise<ApiResponse<T>> {
     try {
       const { token } = useAuthStore.getState();
-      
+
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers: {
@@ -50,27 +85,35 @@ class ApiService {
     });
 
     // Adapter la réponse Laravel au format attendu par le mobile
-    if (response.success && response.data) {
+    if (
+      response.success &&
+      response.data &&
+      typeof response.data === 'object' &&
+      'user' in response.data &&
+      response.data.user &&
+      typeof response.data.user === 'object' &&
+      'idUtilisateur' in response.data.user
+    ) {
       return {
         success: true,
         data: {
           user: {
-            id: response.data.user.idUtilisateur.toString(),
-            matricule: response.data.user.matricule,
-            nom: response.data.user.nom,
-            prenom: response.data.user.prenom,
-            email: response.data.user.email,
-            telephone: response.data.user.telephone,
-            role: response.data.user.role === 'agent' ? 'agent' : 'technicien',
+            id: (response.data.user as any).idUtilisateur.toString(),
+            matricule: (response.data.user as any).matricule,
+            nom: (response.data.user as any).nom,
+            prenom: (response.data.user as any).prenom,
+            email: (response.data.user as any).email,
+            telephone: (response.data.user as any).telephone,
+            role: (response.data.user as any).role === 'agent' ? 'agent' : 'technicien',
             isActive: true,
           },
-          token: response.data.token,
-          refreshToken: response.data.token, // Laravel Sanctum n'utilise pas de refresh token
+          token: (response as any).token || (response.data as any).token,
+          refreshToken: (response as any).token || (response.data as any).token, // Laravel Sanctum n'utilise pas de refresh token
         }
       };
     }
 
-    return response;
+    return response as ApiResponse<{ user: User; token: string; refreshToken?: string }>;
   }
 
   async logout(): Promise<ApiResponse<null>> {
@@ -89,11 +132,16 @@ class ApiService {
 
   // Dashboard - Utilise l'endpoint Laravel
   async getDashboardStats(): Promise<ApiResponse<DashboardStats>> {
-    const response = await this.makeRequest('/dashboard');
+    const response = await this.makeRequest<DashboardStats>('/dashboard');
 
-    if (response.success && response.data) {
+    if (
+      response.success &&
+      response.data &&
+      typeof response.data === 'object' &&
+      'statistiques' in response.data
+    ) {
       // Adapter les données Laravel au format mobile
-      const stats = response.data.statistiques;
+      const stats = (response.data as any).statistiques;
       return {
         success: true,
         data: {
@@ -103,8 +151,8 @@ class ApiService {
           incidentsTotal: stats.incidents.total,
           incidentsDuMois: stats.incidents.ce_mois,
           efaTratraTotal: stats.personnes.total,
-          zonesRisque: response.data.cameras_par_zone ? 
-            Object.entries(response.data.cameras_par_zone).map(([zone, data]: [string, any]) => ({
+          zonesRisque: (response.data as any).cameras_par_zone ?
+            Object.entries((response.data as any).cameras_par_zone).map(([zone, data]: [string, any]) => ({
               zone,
               incidents: data.reduce((sum: number, item: any) => sum + item.count, 0)
             })) : []
@@ -112,23 +160,26 @@ class ApiService {
       };
     }
 
-    return response;
+    return response as ApiResponse<DashboardStats>;
   }
 
   // Cameras - Utilise les endpoints Laravel
   async getCameras(): Promise<ApiResponse<Camera[]>> {
-    const response = await this.makeRequest('/cameras');
+    const response = await this.makeRequest<Camera[]>('/cameras');
 
-    if (response.success && response.data) {
+    if (response.success && Array.isArray(response.data)) {
       // Adapter les données Laravel au format mobile
-      const cameras = response.data.map((camera: any) => ({
+      const cameras = (response.data as any[]).map((camera) => ({
         id: camera.idCamera.toString(),
         numero: camera.numeroSerie,
         zone: camera.zone,
         emplacement: camera.emplacement,
         ip: camera.adresseIP,
-        statut: camera.statut === 'actif' ? 'en_ligne' : 
-                camera.statut === 'panne' ? 'maintenance' : 'hors_ligne',
+        statut: camera.statut === 'actif'
+          ? 'en_ligne'
+          : camera.statut === 'panne'
+          ? 'maintenance'
+          : 'hors_ligne' as 'hors_ligne' | 'en_ligne' | 'maintenance',
         dateInstallation: new Date(camera.dateInstallation),
         latitude: -18.1569, // Coordonnées par défaut de Toamasina
         longitude: 49.4085,
@@ -142,35 +193,8 @@ class ApiService {
       };
     }
 
-    return response;
-  }
-
-  async getCamera(id: string): Promise<ApiResponse<Camera>> {
-    const response = await this.makeRequest(`/cameras/${id}`);
-
-    if (response.success && response.data) {
-      const camera = response.data;
-      return {
-        success: true,
-        data: {
-          id: camera.idCamera.toString(),
-          numero: camera.numeroSerie,
-          zone: camera.zone,
-          emplacement: camera.emplacement,
-          ip: camera.adresseIP,
-          statut: camera.statut === 'actif' ? 'en_ligne' : 
-                  camera.statut === 'panne' ? 'maintenance' : 'hors_ligne',
-          dateInstallation: new Date(camera.dateInstallation),
-          latitude: -18.1569,
-          longitude: 49.4085,
-          historiquePannes: [],
-          historiqueMutations: [],
-        }
-      };
-    }
-
-    return response;
-  }
+    return response as ApiResponse<Camera[]>;
+  };
 
   async createCamera(camera: Omit<Camera, 'id'>): Promise<ApiResponse<Camera>> {
     const cameraData = {
@@ -186,8 +210,20 @@ class ApiService {
       body: JSON.stringify(cameraData),
     });
 
-    if (response.success && response.data) {
-      const newCamera = response.data;
+    if (
+      response.success &&
+      response.data &&
+      typeof response.data === 'object' &&
+      'idCamera' in response.data
+    ) {
+      const newCamera = response.data as {
+        idCamera: number | string;
+        numeroSerie: string;
+        zone: string;
+        emplacement: string;
+        adresseIP: string;
+        dateInstallation: string;
+      };
       return {
         success: true,
         data: {
@@ -206,18 +242,18 @@ class ApiService {
       };
     }
 
-    return response;
+    return response as ApiResponse<Camera>;
   }
 
   async updateCamera(id: string, updates: Partial<Camera>): Promise<ApiResponse<Camera>> {
     const updateData: any = {};
-    
+
     if (updates.numero) updateData.numeroSerie = updates.numero;
     if (updates.ip) updateData.adresseIP = updates.ip;
     if (updates.zone) updateData.zone = updates.zone;
     if (updates.emplacement) updateData.emplacement = updates.emplacement;
     if (updates.statut) {
-      updateData.statut = updates.statut === 'en_ligne' ? 'actif' : 
+      updateData.statut = updates.statut === 'en_ligne' ? 'actif' :
                           updates.statut === 'maintenance' ? 'panne' : 'hors ligne';
     }
 
@@ -237,11 +273,11 @@ class ApiService {
   async getIncidents(): Promise<ApiResponse<Incident[]>> {
     const response = await this.makeRequest('/incidents');
 
-    if (response.success && response.data) {
+    if (response.success && Array.isArray(response.data)) {
       // Adapter les données Laravel au format mobile
-      const incidents = response.data.map((incident: any) => ({
-        id: incident.idIncident.toString(),
-        type: incident.typeIncident.toLowerCase().replace(' ', '_'),
+      const incidents = (response.data as any[]).map((incident) => ({
+        id: String(incident.idIncident),
+        type: mapIncidentType(incident.typeIncident),
         description: incident.description,
         dateIncident: new Date(incident.dateHeure),
         zone: incident.zone,
@@ -254,7 +290,7 @@ class ApiService {
         latitude: -18.1569,
         longitude: 49.4085,
         personnesImpliquees: [],
-      }));
+      } as Incident));
 
       return {
         success: true,
@@ -262,12 +298,12 @@ class ApiService {
       };
     }
 
-    return response;
+    return response as ApiResponse<Incident[]>;
   }
 
   async createIncident(incident: Omit<Incident, 'id'>): Promise<ApiResponse<Incident>> {
     const formData = new FormData();
-    
+
     // Adapter les données mobile au format Laravel
     formData.append('dateHeure', incident.dateIncident.toISOString());
     formData.append('typeIncident', incident.type.charAt(0).toUpperCase() + incident.type.slice(1).replace('_', ' '));
@@ -353,25 +389,25 @@ class ApiService {
   async getEfaTratra(): Promise<ApiResponse<EfaTratra[]>> {
     const response = await this.makeRequest('/personnes');
 
-    if (response.success && response.data) {
+    if (response.success && Array.isArray(response.data)) {
       // Adapter les données Laravel au format mobile
-      const efaTratra = response.data.map((personne: any) => ({
-        id: personne.idPersonne.toString(),
+      const efaTratra = (response.data as any[]).map((personne) => ({
+        id: String(personne.idPersonne),
         nom: personne.nom,
         prenom: personne.prenom,
-        age: null, // Non disponible dans Laravel
-        adresse: null, // Non disponible dans Laravel
-        telephone: null, // Non disponible dans Laravel
+        age: undefined,
+        adresse: undefined,
+        telephone: undefined,
         photo: personne.photo,
         faitsAssocies: personne.interpellations?.map((i: any) => i.faitAssocie) || [],
-        dateApprehension: personne.interpellations?.[0]?.dateHeure ? 
+        dateApprehension: personne.interpellations?.[0]?.dateHeure ?
           new Date(personne.interpellations[0].dateHeure) : new Date(),
-        agent: personne.interpellations?.[0]?.utilisateur ? 
-          `${personne.interpellations[0].utilisateur.prenom} ${personne.interpellations[0].utilisateur.nom}` : 
+        agent: personne.interpellations?.[0]?.utilisateur ?
+          `${personne.interpellations[0].utilisateur.prenom} ${personne.interpellations[0].utilisateur.nom}` :
           'Agent inconnu',
         statut: 'en_garde_a_vue', // Statut par défaut
         observations: personne.interpellations?.map((i: any) => i.faitAssocie).join('; ') || '',
-      }));
+      } as EfaTratra));
 
       return {
         success: true,
@@ -379,12 +415,12 @@ class ApiService {
       };
     }
 
-    return response;
+    return response as ApiResponse<EfaTratra[]>;
   }
 
   async createEfaTratra(efa: Omit<EfaTratra, 'id'>): Promise<ApiResponse<EfaTratra>> {
     const formData = new FormData();
-    
+
     formData.append('nom', efa.nom);
     formData.append('prenom', efa.prenom);
     formData.append('CIN', Math.random().toString().substr(2, 12)); // Générer un CIN temporaire
@@ -447,7 +483,7 @@ class ApiService {
 
   async updateEfaTratra(id: string, updates: Partial<EfaTratra>): Promise<ApiResponse<EfaTratra>> {
     const formData = new FormData();
-    
+
     if (updates.nom) formData.append('nom', updates.nom);
     if (updates.prenom) formData.append('prenom', updates.prenom);
     if (updates.statut) formData.append('statut', updates.statut === 'en_garde_a_vue' ? 'externe' : 'interne');
@@ -503,23 +539,31 @@ class ApiService {
   async getMe(): Promise<ApiResponse<User>> {
     const response = await this.makeRequest('/me');
 
-    if (response.success && response.data) {
-      return {
-        success: true,
-        data: {
-          id: response.data.user.idUtilisateur.toString(),
-          matricule: response.data.user.matricule,
-          nom: response.data.user.nom,
-          prenom: response.data.user.prenom,
-          email: response.data.user.email,
-          telephone: response.data.user.telephone,
-          role: response.data.user.role === 'agent' ? 'agent' : 'technicien',
-          isActive: true,
-        }
-      };
+    if (
+      response.success &&
+      response.data &&
+      typeof response.data === 'object' &&
+      'user' in response.data
+    ) {
+      const user: any = (response.data as any).user;
+      if (user && typeof user === 'object' && 'idUtilisateur' in user) {
+        return {
+          success: true,
+          data: {
+            id: String(user.idUtilisateur),
+            matricule: user.matricule,
+            nom: user.nom,
+            prenom: user.prenom,
+            email: user.email,
+            telephone: user.telephone,
+            role: user.role === 'agent' ? 'agent' : 'technicien',
+            isActive: true,
+          }
+        };
+      }
     }
 
-    return response;
+    return response as ApiResponse<User>;
   }
 }
 

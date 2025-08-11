@@ -9,7 +9,6 @@ import {
 import { router } from 'expo-router';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import { useCamerasStore } from '@/stores/cameras';
-import { getStatusColor } from '@/utils/helpers';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { ArrowLeft, Wifi, WifiOff, Wrench } from 'lucide-react-native';
