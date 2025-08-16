@@ -19,6 +19,35 @@ function resolveApiBaseUrl(): string {
 
 const API_BASE_URL = resolveApiBaseUrl();
 
+// Fonction utilitaire pour construire les URLs de photos
+function buildPhotoUrl(photoPath: string): string {
+  if (!photoPath || photoPath === null || photoPath === '') {
+    return '';
+  }
+
+  // Si c'est déjà une URL complète, la retourner telle quelle
+  if (photoPath.startsWith('http://') || photoPath.startsWith('https://')) {
+    return photoPath;
+  }
+
+  // Nettoyer le chemin (enlever les préfixes redondants)
+  let cleanPath = photoPath;
+
+  // Enlever le préfixe 'storage/' s'il existe
+  if (cleanPath.startsWith('storage/')) {
+    cleanPath = cleanPath.substring(8);
+  }
+
+  // Enlever le préfixe 'public/' s'il existe
+  if (cleanPath.startsWith('public/')) {
+    cleanPath = cleanPath.substring(7);
+  }
+
+  // Construire l'URL complète
+  const baseUrl = API_BASE_URL.replace('/api', '');
+  return `${baseUrl}/storage/${cleanPath}`;
+}
+
 // Map backend incident type to strict union type
 type IncidentTypeUnion = Incident['type'];
 function mapIncidentType(input: any): IncidentTypeUnion {
@@ -417,17 +446,10 @@ class ApiService {
         const photoValue = serverData[photoField];
 
         if (photoValue && photoValue !== null && photoValue !== '') {
-          // Construire l'URL complète de la photo
-          let photoUrl;
-          if (photoValue.startsWith('http://') || photoValue.startsWith('https://')) {
-            photoUrl = photoValue;
-          } else {
-            // Enlever le préfixe 'storage/' s'il existe déjà
-            const cleanPath = photoValue.replace(/^storage\//, '');
-            photoUrl = `${API_BASE_URL.replace('/api', '')}/storage/${cleanPath}`;
+          const photoUrl = buildPhotoUrl(photoValue);
+          if (photoUrl) {
+            serverPhotos.push(photoUrl);
           }
-
-          serverPhotos.push(photoUrl);
         }
       }
 
@@ -559,6 +581,7 @@ class ApiService {
 
     if (response.success && response.data) {
       const incident = response.data as any;
+      console.log('Incident data from server:', incident);
 
       // Adapter les données Laravel au format mobile
       const mappedIncident: Incident = {
@@ -579,18 +602,15 @@ class ApiService {
             const photoValue = incident[photoField];
 
             if (photoValue && photoValue !== null && photoValue !== '') {
-              let photoUrl;
-              if (photoValue.startsWith('http://') || photoValue.startsWith('https://')) {
-                photoUrl = photoValue;
-              } else {
-                // Enlever le préfixe 'storage/' s'il existe déjà
-                const cleanPath = photoValue.replace(/^storage\//, '');
-                photoUrl = `${API_BASE_URL.replace('/api', '')}/storage/${cleanPath}`;
+              const photoUrl = buildPhotoUrl(photoValue);
+              console.log(`Photo ${i}: ${photoValue} -> ${photoUrl}`);
+              if (photoUrl) {
+                photos.push(photoUrl);
               }
-              photos.push(photoUrl);
             }
           }
 
+          console.log('Final photos array:', photos);
           return photos;
         })(),
         temoins: [],

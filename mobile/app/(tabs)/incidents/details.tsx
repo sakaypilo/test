@@ -105,12 +105,21 @@ export default function IncidentDetailsScreen() {
       return [];
     }
 
+    console.log('Rendering photos:', selectedIncident.photos);
+
     return selectedIncident.photos.map((photoUrl, index) => (
       <Image
         key={`detail-photo-${index}-${photoUrl.split('/').pop()}`}
         source={{ uri: photoUrl }}
         style={styles.photo}
         resizeMode="cover"
+        onError={(error) => {
+          console.error(`Erreur chargement photo ${index}:`, error.nativeEvent.error);
+          console.error(`URL problématique: ${photoUrl}`);
+        }}
+        onLoad={() => {
+          console.log(`Photo ${index} chargée avec succès: ${photoUrl}`);
+        }}
       />
     ));
   };

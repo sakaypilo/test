@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "EXPO_PUBLIC_API_URL=http://localhost:8000/api EXPO_NO_TELEMETRY=1 expo start",
     "build:web": "expo export --platform web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test:auth": "node scripts/test-auth.js",
+    "clear:auth": "node scripts/clear-auth-cache.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",

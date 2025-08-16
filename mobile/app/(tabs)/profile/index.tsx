@@ -23,7 +23,8 @@ import {
   Settings,
   LogOut,
   Shield,
-  Download
+  Download,
+  Camera
 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
