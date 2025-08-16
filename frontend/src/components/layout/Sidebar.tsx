@@ -64,13 +64,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       {/* Header */}
       <div className="flex items-center justify-between h-16 px-6 border-b border-secondary-200">
         <div className="flex items-center space-x-3">
-          
-            <img src={logo} alt="Logo SMMC" className="w-10 h-10" />
-          
-          <div>
-            <h1 className="text-lg font-bold text-secondary-900">SMMC</h1>
-            <p className="text-xs text-secondary-500">Security Platform</p>
-          </div>
+          <div className="w-[200px] h-[60px]">
+  <img src={logo} alt="Logo SMMC" className="w-full h-full object-contain" />
+</div>
         </div>
         <button
           onClick={onToggle}

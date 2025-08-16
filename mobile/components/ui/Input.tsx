@@ -7,6 +7,7 @@ import {
   TextInputProps,
   ViewStyle,
 } from 'react-native';
+import { colors } from '@/theme/colors';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -52,7 +53,7 @@ export default function Input({
           setIsFocused(false);
           props.onBlur?.(e);
         }}
-        placeholderTextColor="#94a3b8"
+        placeholderTextColor={colors.secondary[400]}
       />
       {error && <Text style={styles.error}>{error}</Text>}
       {helperText && !error && <Text style={styles.helperText}>{helperText}</Text>}
@@ -67,41 +68,41 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.secondary[700],
     marginBottom: 8,
   },
   required: {
-    color: '#dc2626',
+    color: colors.danger,
   },
   input: {
     borderWidth: 1.5,
-    borderColor: '#d1d5db',
+    borderColor: colors.secondary[300],
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    backgroundColor: '#ffffff',
-    color: '#1f2937',
+    backgroundColor: colors.white,
+    color: colors.secondary[800],
   },
   inputFocused: {
-    borderColor: '#1e40af',
-    shadowColor: '#1e40af',
+    borderColor: colors.primary[500],
+    shadowColor: colors.primary[500],
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
   inputError: {
-    borderColor: '#dc2626',
+    borderColor: colors.danger,
   },
   error: {
     fontSize: 14,
-    color: '#dc2626',
+    color: colors.danger,
     marginTop: 4,
   },
   helperText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.secondary[500],
     marginTop: 4,
   },
 });

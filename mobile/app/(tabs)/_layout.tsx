@@ -14,7 +14,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#1e40af',
+        tabBarActiveTintColor: '#00A550', // primary.500
         tabBarInactiveTintColor: '#64748b',
         tabBarStyle: {
           backgroundColor: '#ffffff',
@@ -66,13 +66,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="efa-tratra"
         options={{
-          title: 'Efa Tratra',
+          title: 'Interpellations',
           tabBarIcon: ({ color, size }) => (
             <Users size={isTablet ? size + 4 : size} color={color} />
           ),
         }}
       />
       
+
+
       <Tabs.Screen
         name="profile/index"
         options={{

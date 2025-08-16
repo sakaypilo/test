@@ -12,7 +12,7 @@ export default function LoadingSpinner({
 }: LoadingSpinnerProps) {
   return (
     <View style={styles.container}>
-      <ActivityIndicator size={size} color="#1e40af" />
+      <ActivityIndicator size={size} color="#00A550" />
       {message && <Text style={styles.message}>{message}</Text>}
     </View>
   );

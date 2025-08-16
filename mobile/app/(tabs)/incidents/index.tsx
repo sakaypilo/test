@@ -84,7 +84,7 @@ export default function IncidentsScreen() {
     switch (type) {
       case 'vol': return '#dc2626';
       case 'bagarre': return '#f59e0b';
-      case 'accident': return '#8b5cf6';
+      case 'accident': return '#059669'; // primary.600
       default: return '#64748b';
     }
   };
@@ -188,7 +188,7 @@ export default function IncidentsScreen() {
                     <View style={styles.typeContainer}>
                       {getTypeIcon(incident.type)}
                       <Text style={[styles.typeText, { color: getTypeColor(incident.type) }]}>
-                        {incident.type.toUpperCase()}
+                        {(incident.type || '').toUpperCase()}
                       </Text>
                     </View>
                     <View style={styles.statusContainer}>
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   header: {
-    backgroundColor: '#1e40af',
+    backgroundColor: '#00A550', // primary.500
     padding: isTablet ? 30 : 20,
     paddingTop: isTablet ? 60 : 50,
   },
@@ -251,14 +251,17 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: isTablet ? 16 : 14,
-    color: '#c7d2fe',
+    color: '#bbf7d0', // primary.200
     marginTop: 4,
   },
   actions: {
+    flexDirection: 'row',
     padding: 20,
     paddingBottom: 10,
+    gap: 12,
   },
   addButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -277,8 +280,8 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   filterButtonActive: {
-    backgroundColor: '#1e40af',
-    borderColor: '#1e40af',
+    backgroundColor: '#00A550', // primary.500
+    borderColor: '#00A550', // primary.500
   },
   filterText: {
     fontSize: isTablet ? 14 : 12,
@@ -365,12 +368,12 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#f0fdf4', // primary.50
     borderRadius: 12,
   },
   photosText: {
     fontSize: isTablet ? 12 : 10,
-    color: '#1e40af',
+    color: '#00A550', // primary.500
     fontWeight: '500',
   },
 });

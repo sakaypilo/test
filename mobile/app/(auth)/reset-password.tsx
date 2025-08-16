@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(30, 64, 175, 0.8)',
+    backgroundColor: 'rgba(0, 165, 80, 0.8)', // primary.500
   },
   container: {
     flex: 1,
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 18,
-    color: '#e0e7ff',
+    color: '#dcfce7', // primary.100
     marginTop: 8,
     textAlign: 'center',
   },
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1e40af',
+    color: '#00A550', // primary.500
     textAlign: 'center',
     marginBottom: 16,
   },

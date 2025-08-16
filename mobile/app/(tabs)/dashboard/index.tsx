@@ -70,7 +70,7 @@ export default function DashboardScreen() {
     );
   }
 
-  const StatCard = ({ icon, title, value, subtitle, color = '#1e40af' }: {
+  const StatCard = ({ icon, title, value, subtitle, color = '#00A550' }: {
     icon: React.ReactNode;
     title: string;
     value: string | number;
@@ -119,7 +119,7 @@ export default function DashboardScreen() {
         <>
           <View style={styles.statsGrid}>
             <StatCard
-              icon={<Camera size={24} color="#1e40af" />}
+              icon={<Camera size={24} color="#00A550" />}
               title="Total Caméras"
               value={stats.camerasTotal}
               subtitle="Système de surveillance"
@@ -158,11 +158,11 @@ export default function DashboardScreen() {
             />
             
             <StatCard
-              icon={<Users size={24} color="#06b6d4" />}
-              title="Efa Tratra"
+              icon={<Users size={24} color="#00A550" />}
+              title="Interpellations"
               value={stats.efaTratraTotal}
               subtitle="Personnes appréhendées"
-              color="#06b6d4"
+              color="#00A550"
             />
           </View>
 
@@ -202,14 +202,14 @@ export default function DashboardScreen() {
         
         {user?.role === 'technicien' && (
           <View style={styles.quickAction}>
-            <Camera size={20} color="#1e40af" />
+            <Camera size={20} color="#00A550" />
             <Text style={styles.quickActionText}>Ajouter une caméra</Text>
           </View>
         )}
-        
+
         <View style={styles.quickAction}>
-          <Users size={20} color="#06b6d4" />
-          <Text style={styles.quickActionText}>Nouveau Efa Tratra</Text>
+          <Users size={20} color="#00A550" />
+          <Text style={styles.quickActionText}>Nouvelle Interpellation</Text>
         </View>
       </Card>
     </ScrollView>
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   header: {
-    backgroundColor: '#1e40af',
+    backgroundColor: '#00A550', // primary.500
     padding: isTablet ? 30 : 20,
     paddingTop: isTablet ? 60 : 50,
   },
@@ -233,12 +233,12 @@ const styles = StyleSheet.create({
   },
   roleText: {
     fontSize: isTablet ? 18 : 16,
-    color: '#e0e7ff',
+    color: '#dcfce7', // primary.100
     marginTop: 4,
   },
   dateText: {
     fontSize: isTablet ? 16 : 14,
-    color: '#c7d2fe',
+    color: '#bbf7d0', // primary.200
     marginTop: 8,
   },
   statsGrid: {

@@ -12,10 +12,11 @@ import {
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { Incident } from '@/types';
+import { storageService } from '@/services/storage';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import { Camera, MapPin, Plus, X, TriangleAlert as AlertTriangle, Calendar } from 'lucide-react-native';
+import { Camera, X } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 const isTablet = width > 768;
@@ -46,12 +47,13 @@ export default function IncidentForm({
     latitude: incident?.latitude || 0,
     longitude: incident?.longitude || 0,
     personnesImpliquees: incident?.personnesImpliquees || [],
-    statut: incident?.statut || 'en_cours' as const,
+    statut: incident?.statut || 'en_attente' as const,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [newTemoin, setNewTemoin] = useState('');
   const [newPersonne, setNewPersonne] = useState('');
+  const [isSavingPhoto, setIsSavingPhoto] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const incidentTypes = [
@@ -125,15 +127,27 @@ export default function IncidentForm({
     }
   };
 
-  const takePhoto = async () => {
+  const selectPhotoSource = () => {
     if (formData.photos.length >= 6) {
       Alert.alert('Limite atteinte', 'Maximum 6 photos par incident');
       return;
     }
 
+    Alert.alert(
+      'Ajouter une photo',
+      'Choisissez une source',
+      [
+        { text: 'Appareil photo', onPress: takePhoto },
+        { text: 'Galerie', onPress: pickFromGallery },
+        { text: 'Annuler', style: 'cancel' },
+      ]
+    );
+  };
+
+  const takePhoto = async () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      
+
       if (status !== 'granted') {
         Alert.alert(
           'Permission refusée',
@@ -143,24 +157,111 @@ export default function IncidentForm({
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets[0]) {
-        setFormData(prev => ({
-          ...prev,
-          photos: [...prev.photos, result.assets[0].uri],
-        }));
+        const tempUri = result.assets[0].uri;
+
+        setIsSavingPhoto(true);
+
+        try {
+          // Sauvegarder l'image de manière permanente
+          const permanentUri = await storageService.saveImagePermanently(tempUri);
+
+          if (permanentUri) {
+            // Vérifier que le fichier existe
+            const fileExists = await storageService.testImageAccess(permanentUri);
+            if (fileExists) {
+              setFormData(prev => ({
+                ...prev,
+                photos: [...prev.photos, permanentUri],
+              }));
+            } else {
+              Alert.alert('Erreur', 'Photo sauvegardée mais inaccessible');
+            }
+          } else {
+            Alert.alert('Erreur', 'Impossible de sauvegarder la photo');
+          }
+        } catch (error) {
+          console.error('Erreur lors de la sauvegarde:', error);
+          Alert.alert('Erreur', 'Erreur lors de la sauvegarde de la photo');
+        } finally {
+          setIsSavingPhoto(false);
+        }
       }
     } catch (error) {
+      console.error('Erreur prise de photo:', error);
       Alert.alert('Erreur', 'Impossible de prendre la photo');
     }
   };
 
-  const removePhoto = (index: number) => {
+  const pickFromGallery = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission refusée',
+          'L\'accès à la galerie est nécessaire.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const tempUri = result.assets[0].uri;
+
+        setIsSavingPhoto(true);
+
+        try {
+          // Sauvegarder l'image de manière permanente
+          const permanentUri = await storageService.saveImagePermanently(tempUri);
+
+          if (permanentUri) {
+            // Vérifier que le fichier existe
+            const fileExists = await storageService.testImageAccess(permanentUri);
+            if (fileExists) {
+              setFormData(prev => ({
+                ...prev,
+                photos: [...prev.photos, permanentUri],
+              }));
+            } else {
+              Alert.alert('Erreur', 'Photo sauvegardée mais inaccessible');
+            }
+          } else {
+            Alert.alert('Erreur', 'Impossible de sauvegarder la photo');
+          }
+        } catch (error) {
+          console.error('Erreur lors de la sauvegarde:', error);
+          Alert.alert('Erreur', 'Erreur lors de la sauvegarde de la photo');
+        } finally {
+          setIsSavingPhoto(false);
+        }
+      }
+    } catch (error) {
+      console.error('Erreur sélection photo:', error);
+      Alert.alert('Erreur', 'Impossible de sélectionner la photo');
+    }
+  };
+
+  const removePhoto = async (index: number) => {
+    const photoToRemove = formData.photos[index];
+
+    // Supprimer le fichier physique
+    if (photoToRemove) {
+      await storageService.deleteImage(photoToRemove);
+    }
+
     setFormData(prev => ({
       ...prev,
       photos: prev.photos.filter((_, i) => i !== index),
@@ -202,7 +303,10 @@ export default function IncidentForm({
   };
 
   const handleSubmit = () => {
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
+
     onSubmit(formData);
   };
 
@@ -296,8 +400,11 @@ export default function IncidentForm({
           
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosScroll}>
             {formData.photos.map((photo, index) => (
-              <View key={index} style={styles.photoContainer}>
-                <Image source={{ uri: photo }} style={styles.photo} />
+              <View key={`photo-${index}-${photo.split('/').pop()}`} style={styles.photoContainer}>
+                <Image
+                  source={{ uri: photo }}
+                  style={styles.photo}
+                />
                 <TouchableOpacity
                   style={styles.removePhotoButton}
                   onPress={() => removePhoto(index)}
@@ -308,9 +415,15 @@ export default function IncidentForm({
             ))}
             
             {formData.photos.length < 6 && (
-              <TouchableOpacity style={styles.addPhotoButton} onPress={takePhoto}>
-                <Camera size={24} color="#64748b" />
-                <Text style={styles.addPhotoText}>Ajouter</Text>
+              <TouchableOpacity
+                style={[styles.addPhotoButton, isSavingPhoto && styles.addPhotoButtonDisabled]}
+                onPress={isSavingPhoto ? undefined : selectPhotoSource}
+                disabled={isSavingPhoto}
+              >
+                <Camera size={24} color={isSavingPhoto ? "#9ca3af" : "#64748b"} />
+                <Text style={[styles.addPhotoText, isSavingPhoto && styles.addPhotoTextDisabled]}>
+                  {isSavingPhoto ? 'Sauvegarde...' : 'Ajouter'}
+                </Text>
               </TouchableOpacity>
             )}
           </ScrollView>
@@ -537,6 +650,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
     marginTop: 4,
+  },
+  addPhotoButtonDisabled: {
+    opacity: 0.6,
+    borderColor: '#e5e7eb',
+  },
+  addPhotoTextDisabled: {
+    color: '#9ca3af',
   },
   listSection: {
     marginBottom: 20,

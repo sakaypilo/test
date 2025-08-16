@@ -185,7 +185,7 @@ export default function CamerasScreen() {
                   
                   <View style={styles.statusBadge}>
                     <Text style={[styles.statusText, { color: getStatusColor(camera.statut) }]}>
-                      {camera.statut.replace('_', ' ').toUpperCase()}
+                      {(camera.statut || '').replace('_', ' ').toUpperCase()}
                     </Text>
                   </View>
                   
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   header: {
-    backgroundColor: '#1e40af',
+    backgroundColor: '#00A550', // primary.500
     padding: isTablet ? 30 : 20,
     paddingTop: isTablet ? 60 : 50,
   },
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: isTablet ? 16 : 14,
-    color: '#c7d2fe',
+    color: '#bbf7d0', // primary.200
     marginTop: 4,
   },
   actionButtons: {

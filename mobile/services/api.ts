@@ -50,17 +50,53 @@ class ApiService {
         ...options,
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` }),
           ...options.headers,
         },
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
+      // Vérifier si la réponse est du JSON valide
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Erreur de parsing JSON:', parseError);
         return {
           success: false,
-          message: data.message || 'Une erreur est survenue',
+          message: 'Réponse serveur invalide',
+        };
+      }
+
+      if (!response.ok) {
+        // Gestion spécifique des codes d'erreur
+        let message = 'Une erreur est survenue';
+
+        switch (response.status) {
+          case 401:
+            message = 'Session expirée, veuillez vous reconnecter';
+            // Déconnecter l'utilisateur
+            useAuthStore.getState().logout();
+            break;
+          case 403:
+            message = 'Accès non autorisé';
+            break;
+          case 404:
+            message = 'Ressource non trouvée';
+            break;
+          case 422:
+            message = data.message || 'Données invalides';
+            break;
+          case 500:
+            message = 'Erreur serveur interne';
+            break;
+          default:
+            message = data.message || `Erreur ${response.status}`;
+        }
+
+        return {
+          success: false,
+          message,
           errors: data.errors,
         };
       }
@@ -70,6 +106,16 @@ class ApiService {
         data: data.data || data,
       };
     } catch (error) {
+      console.error('Erreur API:', error);
+
+      // Gestion spécifique des erreurs réseau
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        return {
+          success: false,
+          message: 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.',
+        };
+      }
+
       return {
         success: false,
         message: 'Erreur de connexion au serveur',
@@ -169,23 +215,25 @@ class ApiService {
 
     if (response.success && Array.isArray(response.data)) {
       // Adapter les données Laravel au format mobile
-      const cameras = (response.data as any[]).map((camera) => ({
-        id: camera.idCamera.toString(),
-        numero: camera.numeroSerie,
-        zone: camera.zone,
-        emplacement: camera.emplacement,
-        ip: camera.adresseIP,
-        statut: camera.statut === 'actif'
-          ? 'en_ligne'
-          : camera.statut === 'panne'
-          ? 'maintenance'
-          : 'hors_ligne' as 'hors_ligne' | 'en_ligne' | 'maintenance',
-        dateInstallation: new Date(camera.dateInstallation),
-        latitude: -18.1569, // Coordonnées par défaut de Toamasina
-        longitude: 49.4085,
-        historiquePannes: [],
-        historiqueMutations: [],
-      }));
+      const cameras = (response.data as any[])
+        .filter((camera) => camera && camera.idCamera) // Filtrer les caméras invalides
+        .map((camera) => ({
+          id: (camera.idCamera || Date.now()).toString(),
+          numero: camera.numeroSerie || 'N/A',
+          zone: camera.zone || 'Zone non spécifiée',
+          emplacement: camera.emplacement || 'Emplacement non spécifié',
+          ip: camera.adresseIP || '0.0.0.0',
+          statut: camera.statut === 'actif'
+            ? 'en_ligne'
+            : camera.statut === 'panne'
+            ? 'maintenance'
+            : 'hors_ligne' as 'hors_ligne' | 'en_ligne' | 'maintenance',
+          dateInstallation: camera.dateInstallation ? new Date(camera.dateInstallation) : new Date(),
+          latitude: -18.1569, // Coordonnées par défaut de Toamasina
+          longitude: 49.4085,
+          historiquePannes: [],
+          historiqueMutations: [],
+        }));
 
       return {
         success: true,
@@ -275,22 +323,34 @@ class ApiService {
 
     if (response.success && Array.isArray(response.data)) {
       // Adapter les données Laravel au format mobile
-      const incidents = (response.data as any[]).map((incident) => ({
-        id: String(incident.idIncident),
-        type: mapIncidentType(incident.typeIncident),
-        description: incident.description,
-        dateIncident: new Date(incident.dateHeure),
-        zone: incident.zone,
-        emplacement: incident.camera?.emplacement || 'Non spécifié',
-        agent: incident.utilisateur ? `${incident.utilisateur.prenom} ${incident.utilisateur.nom}` : 'Agent inconnu',
-        photos: incident.photos || [],
-        temoins: [],
-        mesuresPrises: 'Mesures prises selon protocole',
-        statut: incident.statut === 'valide' ? 'clos' : 'en_cours',
-        latitude: -18.1569,
-        longitude: 49.4085,
-        personnesImpliquees: [],
-      } as Incident));
+      const incidents = (response.data as any[])
+        .filter((incident) => incident && incident.idIncident) // Filtrer les incidents invalides
+        .map((incident) => ({
+          id: String(incident.idIncident || Date.now()), // Fallback si idIncident est undefined
+          type: mapIncidentType(incident.typeIncident),
+          description: incident.description || 'Description non disponible',
+          dateIncident: incident.dateHeure ? new Date(incident.dateHeure) : new Date(),
+          zone: incident.zone || 'Zone non spécifiée',
+          emplacement: incident.camera?.emplacement || 'Non spécifié',
+          agent: incident.utilisateur ? `${incident.utilisateur.prenom || ''} ${incident.utilisateur.nom || ''}`.trim() : 'Agent inconnu',
+          photos: Array.isArray(incident.photos) ? incident.photos.map((photo: any) => {
+            // Si les photos sont des objets avec une propriété 'url' ou 'path'
+            if (typeof photo === 'object' && photo.url) {
+              return photo.url;
+            }
+            if (typeof photo === 'object' && photo.path) {
+              return `${API_BASE_URL}/storage/${photo.path}`;
+            }
+            // Si c'est déjà une URL
+            return typeof photo === 'string' ? photo : '';
+          }).filter(Boolean) : [],
+          temoins: [],
+          mesuresPrises: 'Mesures prises selon protocole',
+          statut: incident.statut === 'valide' ? 'clos' : 'en_cours',
+          latitude: -18.1569,
+          longitude: 49.4085,
+          personnesImpliquees: [],
+        } as Incident));
 
       return {
         success: true,
@@ -311,25 +371,29 @@ class ApiService {
     formData.append('zone', incident.zone);
     formData.append('idCamera', '1'); // Utiliser la première caméra par défaut
 
-    // Ajouter les photos si présentes
+    // Ajouter les photos
     incident.photos.forEach((photo, index) => {
-      if (photo) {
-        formData.append(`photos[${index}]`, {
+      if (photo && photo.trim()) {
+        const photoObject = {
           uri: photo,
           type: 'image/jpeg',
-          name: `photo_${index}.jpg`,
-        } as any);
+          name: `incident_photo_${index + 1}.jpg`,
+        };
+
+        formData.append('photos[]', photoObject as any);
       }
     });
 
     const { token } = useAuthStore.getState();
 
     try {
+      // Pour React Native, ne pas définir Content-Type pour multipart/form-data
+      // Le navigateur/RN le définira automatiquement avec la boundary
       const response = await fetch(`${API_BASE_URL}/incidents`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
+          // Ne pas définir Content-Type pour multipart/form-data
         },
         body: formData,
       });
@@ -343,24 +407,61 @@ class ApiService {
         };
       }
 
+      // Extraire les URLs des photos depuis la réponse du serveur
+      const serverData = data?.data || {};
+      const serverPhotos = [];
+
+      // Le serveur Laravel stocke les photos dans photo1, photo2, etc.
+      for (let i = 1; i <= 6; i++) {
+        const photoField = `photo${i}`;
+        const photoValue = serverData[photoField];
+
+        if (photoValue && photoValue !== null && photoValue !== '') {
+          // Construire l'URL complète de la photo
+          let photoUrl;
+          if (photoValue.startsWith('http://') || photoValue.startsWith('https://')) {
+            photoUrl = photoValue;
+          } else {
+            // Enlever le préfixe 'storage/' s'il existe déjà
+            const cleanPath = photoValue.replace(/^storage\//, '');
+            photoUrl = `${API_BASE_URL.replace('/api', '')}/storage/${cleanPath}`;
+          }
+
+          serverPhotos.push(photoUrl);
+        }
+      }
+
+      // Construire l'incident final avec les photos du serveur
+      const finalIncident = {
+        id: (data?.data?.idIncident || Date.now()).toString(),
+        type: incident.type,
+        description: incident.description,
+        dateIncident: incident.dateIncident,
+        dateHeure: incident.dateIncident, // Alias pour compatibilité
+        zone: incident.zone,
+        emplacement: incident.emplacement,
+        agent: incident.agent,
+        photos: serverPhotos.length > 0 ? serverPhotos : [], // Utiliser les photos du serveur ou tableau vide
+        temoins: incident.temoins || [],
+        mesuresPrises: incident.mesuresPrises,
+        statut: 'en_attente' as const,
+        latitude: incident.latitude,
+        longitude: incident.longitude,
+        personnesImpliquees: incident.personnesImpliquees || [],
+        cameraId: '1',
+        camera: serverData.camera ? {
+          numeroSerie: serverData.camera.numeroSerie || '',
+          emplacement: serverData.camera.emplacement || ''
+        } : undefined,
+        utilisateur: serverData.utilisateur ? {
+          nom: serverData.utilisateur.nom || '',
+          prenom: serverData.utilisateur.prenom || ''
+        } : undefined,
+      };
+
       return {
         success: true,
-        data: {
-          id: data.data.idIncident.toString(),
-          type: incident.type,
-          description: incident.description,
-          dateIncident: incident.dateIncident,
-          zone: incident.zone,
-          emplacement: incident.emplacement,
-          agent: incident.agent,
-          photos: incident.photos,
-          temoins: incident.temoins,
-          mesuresPrises: incident.mesuresPrises,
-          statut: 'en_cours',
-          latitude: incident.latitude,
-          longitude: incident.longitude,
-          personnesImpliquees: incident.personnesImpliquees,
-        }
+        data: finalIncident
       };
     } catch (error) {
       return {
@@ -386,140 +487,23 @@ class ApiService {
   }
 
   // Efa Tratra (Personnes) - Utilise les endpoints Laravel
-  async getEfaTratra(): Promise<ApiResponse<EfaTratra[]>> {
+  async getEfaTratra(): Promise<ApiResponse<any[]>> {
     const response = await this.makeRequest('/personnes');
 
     if (response.success && Array.isArray(response.data)) {
-      // Adapter les données Laravel au format mobile
-      const efaTratra = (response.data as any[]).map((personne) => ({
-        id: String(personne.idPersonne),
-        nom: personne.nom,
-        prenom: personne.prenom,
-        age: undefined,
-        adresse: undefined,
-        telephone: undefined,
-        photo: personne.photo,
-        faitsAssocies: personne.interpellations?.map((i: any) => i.faitAssocie) || [],
-        dateApprehension: personne.interpellations?.[0]?.dateHeure ?
-          new Date(personne.interpellations[0].dateHeure) : new Date(),
-        agent: personne.interpellations?.[0]?.utilisateur ?
-          `${personne.interpellations[0].utilisateur.prenom} ${personne.interpellations[0].utilisateur.nom}` :
-          'Agent inconnu',
-        statut: 'en_garde_a_vue', // Statut par défaut
-        observations: personne.interpellations?.map((i: any) => i.faitAssocie).join('; ') || '',
-      } as EfaTratra));
-
+      // Retourner les données Laravel directement
       return {
         success: true,
-        data: efaTratra
+        data: response.data
       };
     }
 
-    return response as ApiResponse<EfaTratra[]>;
+    return response as ApiResponse<any[]>;
   }
 
-  async createEfaTratra(efa: Omit<EfaTratra, 'id'>): Promise<ApiResponse<EfaTratra>> {
-    const formData = new FormData();
 
-    formData.append('nom', efa.nom);
-    formData.append('prenom', efa.prenom);
-    formData.append('CIN', Math.random().toString().substr(2, 12)); // Générer un CIN temporaire
-    formData.append('statut', 'externe');
-    formData.append('faitAssocie', efa.faitsAssocies.join('; '));
 
-    if (efa.photo) {
-      formData.append('photo', {
-        uri: efa.photo,
-        type: 'image/jpeg',
-        name: 'photo.jpg',
-      } as any);
-    }
 
-    const { token } = useAuthStore.getState();
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/personnes`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        return {
-          success: false,
-          message: data.message || 'Erreur lors de la création',
-        };
-      }
-
-      return {
-        success: true,
-        data: {
-          id: data.data.idPersonne.toString(),
-          nom: efa.nom,
-          prenom: efa.prenom,
-          age: efa.age,
-          adresse: efa.adresse,
-          telephone: efa.telephone,
-          photo: efa.photo,
-          faitsAssocies: efa.faitsAssocies,
-          dateApprehension: efa.dateApprehension,
-          agent: efa.agent,
-          statut: efa.statut,
-          observations: efa.observations,
-        }
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Erreur de connexion au serveur',
-      };
-    }
-  }
-
-  async updateEfaTratra(id: string, updates: Partial<EfaTratra>): Promise<ApiResponse<EfaTratra>> {
-    const formData = new FormData();
-
-    if (updates.nom) formData.append('nom', updates.nom);
-    if (updates.prenom) formData.append('prenom', updates.prenom);
-    if (updates.statut) formData.append('statut', updates.statut === 'en_garde_a_vue' ? 'externe' : 'interne');
-
-    const { token } = useAuthStore.getState();
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/personnes/${id}`, {
-        method: 'POST', // Laravel utilise POST avec _method=PUT
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        return {
-          success: false,
-          message: data.message || 'Erreur lors de la mise à jour',
-        };
-      }
-
-      return {
-        success: true,
-        data: data.data
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Erreur de connexion au serveur',
-      };
-    }
-  }
 
   // File upload - Adapter pour Laravel
   async uploadPhoto(uri: string): Promise<ApiResponse<{ url: string }>> {
@@ -564,6 +548,186 @@ class ApiService {
     }
 
     return response as ApiResponse<User>;
+  }
+  // Nouvelles méthodes pour les détails
+  async getCameraDetails(id: number): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/cameras/${id}`);
+  }
+
+  async getIncidentDetails(id: string): Promise<ApiResponse<Incident>> {
+    const response = await this.makeRequest(`/incidents/${id}`);
+
+    if (response.success && response.data) {
+      const incident = response.data as any;
+
+      // Adapter les données Laravel au format mobile
+      const mappedIncident: Incident = {
+        id: String(incident.idIncident || id),
+        type: mapIncidentType(incident.typeIncident),
+        description: incident.description || 'Description non disponible',
+        dateIncident: incident.dateHeure ? new Date(incident.dateHeure) : new Date(),
+        dateHeure: incident.dateHeure ? new Date(incident.dateHeure) : new Date(),
+        zone: incident.zone || 'Zone non spécifiée',
+        emplacement: incident.camera?.emplacement || 'Non spécifié',
+        agent: incident.utilisateur ? `${incident.utilisateur.prenom || ''} ${incident.utilisateur.nom || ''}`.trim() : 'Agent inconnu',
+        photos: (() => {
+          const photos = [];
+
+          // Extraire les photos depuis photo1, photo2, etc.
+          for (let i = 1; i <= 6; i++) {
+            const photoField = `photo${i}`;
+            const photoValue = incident[photoField];
+
+            if (photoValue && photoValue !== null && photoValue !== '') {
+              let photoUrl;
+              if (photoValue.startsWith('http://') || photoValue.startsWith('https://')) {
+                photoUrl = photoValue;
+              } else {
+                // Enlever le préfixe 'storage/' s'il existe déjà
+                const cleanPath = photoValue.replace(/^storage\//, '');
+                photoUrl = `${API_BASE_URL.replace('/api', '')}/storage/${cleanPath}`;
+              }
+              photos.push(photoUrl);
+            }
+          }
+
+          return photos;
+        })(),
+        temoins: [],
+        mesuresPrises: incident.mesuresPrises || 'Mesures prises selon protocole',
+        statut: incident.statut || 'en_attente',
+        latitude: incident.latitude || -18.1569,
+        longitude: incident.longitude || 49.4085,
+        personnesImpliquees: [],
+        cameraId: incident.idCamera ? String(incident.idCamera) : undefined,
+        camera: incident.camera ? {
+          numeroSerie: incident.camera.numeroSerie || '',
+          emplacement: incident.camera.emplacement || ''
+        } : undefined,
+        utilisateur: incident.utilisateur ? {
+          nom: incident.utilisateur.nom || '',
+          prenom: incident.utilisateur.prenom || ''
+        } : undefined,
+        validateur: incident.validateur ? {
+          nom: incident.validateur.nom || '',
+          prenom: incident.validateur.prenom || ''
+        } : undefined,
+        dateValidation: incident.dateValidation ? new Date(incident.dateValidation) : undefined,
+        commentaireValidation: incident.commentaireValidation || undefined,
+      };
+
+      return {
+        success: true,
+        data: mappedIncident
+      };
+    }
+
+    return response as ApiResponse<Incident>;
+  }
+
+  async getPersonneDetails(id: number): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/personnes/${id}`);
+  }
+
+  async addPersonne(data: any): Promise<ApiResponse<any>> {
+    const formData = new FormData();
+    formData.append('nom', data.nom);
+    formData.append('prenom', data.prenom);
+    formData.append('CIN', data.CIN);
+    formData.append('statut', data.statut);
+    formData.append('faitAssocie', data.faitAssocie);
+
+    const { token } = useAuthStore.getState();
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/personnes`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: responseData.message || 'Erreur lors de l\'ajout',
+        };
+      }
+
+      return {
+        success: true,
+        data: responseData.data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Erreur de connexion au serveur',
+      };
+    }
+  }
+
+  async addInterpellation(personneId: number, data: any): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/personnes/${personneId}/interpellations`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Rapports
+  async getReports(): Promise<ApiResponse<any[]>> {
+    return this.makeRequest('/rapports');
+  }
+
+  async generateReport(data: any): Promise<ApiResponse<any>> {
+    return this.makeRequest('/rapports', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async downloadReport(id: number): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/rapports/${id}/download`);
+  }
+
+  // Utilisateurs (pour admin)
+  async getUsers(): Promise<ApiResponse<any[]>> {
+    return this.makeRequest('/users');
+  }
+
+  async addUser(data: any): Promise<ApiResponse<any>> {
+    return this.makeRequest('/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateUser(id: number, data: any): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteUser(id: number): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/users/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async resetUserPassword(id: number): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/users/${id}/reset-password`, {
+      method: 'POST',
+    });
+  }
+
+  async toggleUserStatus(id: number): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/users/${id}/toggle-status`, {
+      method: 'POST',
+    });
   }
 }
 

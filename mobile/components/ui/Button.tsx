@@ -7,6 +7,7 @@ import {
   TextStyle,
   ActivityIndicator,
 } from 'react-native';
+import { colors } from '@/theme/colors';
 
 interface ButtonProps {
   title: string;
@@ -53,9 +54,9 @@ export default function Button({
       activeOpacity={0.8}
     >
       {loading ? (
-        <ActivityIndicator 
-          color={variant === 'outline' ? '#1e40af' : '#ffffff'} 
-          size="small" 
+        <ActivityIndicator
+          color={variant === 'outline' ? colors.primary[500] : colors.white}
+          size="small"
         />
       ) : (
         <Text style={buttonTextStyle}>{title}</Text>
@@ -72,18 +73,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   primary: {
-    backgroundColor: '#1e40af',
+    backgroundColor: colors.primary[500],
   },
   secondary: {
-    backgroundColor: '#64748b',
+    backgroundColor: colors.secondary[500],
   },
   danger: {
-    backgroundColor: '#dc2626',
+    backgroundColor: colors.danger,
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: '#1e40af',
+    borderColor: colors.primary[500],
   },
   small: {
     paddingHorizontal: 12,
@@ -98,8 +99,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   disabled: {
-    backgroundColor: '#e2e8f0',
-    borderColor: '#e2e8f0',
+    backgroundColor: colors.secondary[200],
+    borderColor: colors.secondary[200],
   },
   text: {
     fontWeight: '600',
@@ -114,7 +115,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   outlineText: {
-    color: '#1e40af',
+    color: colors.primary[500],
   },
   smallText: {
     fontSize: 14,

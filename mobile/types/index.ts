@@ -1,27 +1,27 @@
 export interface User {
-  id: string;
+  id: string; // idUtilisateur dans Laravel
   matricule: string;
   nom: string;
   prenom: string;
   email: string;
-  telephone: string;
+  telephone?: string; // optionnel dans Laravel
   role: 'agent' | 'technicien' | 'responsable' | 'admin';
-  isActive: boolean;
+  isActive: boolean; // actif dans Laravel
   lastLogin?: Date;
 }
 
 export interface Camera {
-  id: string;
+  id: string; // idCamera dans Laravel
   numero: string; // numeroSerie dans Laravel
   zone: string;
   emplacement: string;
   ip: string; // adresseIP dans Laravel
-  statut: 'en_ligne' | 'hors_ligne' | 'maintenance'; // actif/panne/hors ligne dans Laravel
+  statut: 'actif' | 'panne' | 'hors_ligne'; // statut dans Laravel
   dateInstallation: Date;
-  latitude: number;
-  longitude: number;
-  historiquePannes: Panne[];
-  historiqueMutations: Mutation[];
+  latitude?: number; // pas dans le modèle Laravel actuel
+  longitude?: number; // pas dans le modèle Laravel actuel
+  historiquePannes?: Panne[]; // optionnel
+  historiqueMutations?: Mutation[]; // optionnel
 }
 
 export interface Panne {
@@ -35,47 +35,71 @@ export interface Panne {
 }
 
 export interface Mutation {
-  id: string;
-  cameraId: string;
-  ancienneZone: string;
-  nouvelleZone: string;
-  ancienEmplacement: string;
-  nouvelEmplacement: string;
-  dateMutation: Date;
-  technicien: string;
+  id: string; // idMutation dans Laravel
+  cameraId: string; // idCamera dans Laravel
+  ancienEmplacement: string; // ancienEmplacement dans Laravel
+  nouvelEmplacement: string; // nouvelEmplacement dans Laravel
+  dateMutation: Date; // dateHeureMutation dans Laravel
+  technicien: string; // idTechnicien dans Laravel
   motif: string;
 }
 
 export interface Incident {
-  id: string;
-  type: 'vol' | 'bagarre' | 'accident' | 'autre' | 'intrusion' | 'vol_suspect' | 'vandalisme';
+  id: string; // idIncident dans Laravel
+  type: string; // typeIncident dans Laravel
   description: string;
-  dateIncident: Date;
+  dateIncident: Date; // dateHeure dans Laravel
+  dateHeure?: Date; // alias pour compatibilité
   zone: string;
-  emplacement: string;
-  agent: string;
-  photos: string[];
-  temoins: string[];
-  mesuresPrises: string;
-  statut: 'en_cours' | 'clos'; // en_attente/valide/rejete dans Laravel
-  latitude?: number;
-  longitude?: number;
-  personnesImpliquees?: string[];
+  emplacement?: string; // pas dans le modèle Laravel actuel
+  agent: string; // idUtilisateur dans Laravel
+  photos: string[]; // photo1-photo6 dans Laravel
+  temoins?: string[]; // pas dans le modèle Laravel actuel
+  mesuresPrises?: string; // pas dans le modèle Laravel actuel
+  statut: 'en_attente' | 'valide' | 'rejete'; // statut dans Laravel
+  latitude?: number; // pas dans le modèle Laravel actuel
+  longitude?: number; // pas dans le modèle Laravel actuel
+  personnesImpliquees?: string[]; // pas dans le modèle Laravel actuel
+  cameraId?: string; // idCamera dans Laravel
+  camera?: { // informations de la caméra pour l'affichage
+    numeroSerie: string;
+    emplacement: string;
+  };
+  utilisateur?: { // informations de l'utilisateur pour l'affichage
+    nom: string;
+    prenom: string;
+  };
+  validateur?: { // informations du validateur
+    nom: string;
+    prenom: string;
+  };
+  dateValidation?: Date;
+  commentaireValidation?: string;
 }
 
 export interface EfaTratra {
-  id: string;
+  id: string; // idPersonne dans Laravel
   nom: string;
   prenom: string;
-  age?: number;
-  adresse?: string;
-  telephone?: string;
+  CIN: string; // CIN dans Laravel
+  age?: number; // pas dans le modèle Laravel actuel
+  adresse?: string; // pas dans le modèle Laravel actuel
+  telephone?: string; // pas dans le modèle Laravel actuel
   photo?: string;
-  faitsAssocies: string[];
-  dateApprehension: Date;
-  agent: string;
-  statut: 'en_garde_a_vue' | 'libere' | 'transfere';
-  observations: string;
+  statut: 'interne' | 'externe'; // statut dans Laravel
+  faitsAssocies?: string[]; // géré via les interpellations
+  dateApprehension?: Date; // géré via les interpellations
+  agent?: string; // géré via les interpellations
+  observations?: string; // géré via les interpellations
+}
+
+export interface Interpellation {
+  id: string; // idInterpellation dans Laravel
+  personneId: string; // idPersonne dans Laravel
+  userId: string; // idUtilisateur dans Laravel
+  faitAssocie: string;
+  dateHeure: Date;
+  observations?: string;
 }
 
 export interface ApiResponse<T> {

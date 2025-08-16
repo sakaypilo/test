@@ -16,6 +16,7 @@ import { apiService } from '@/services/api';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
+import { colors } from '@/theme/colors';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -179,7 +180,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(30, 64, 175, 0.8)',
+    backgroundColor: 'rgba(0, 165, 80, 0.8)', // primary.500
   },
   container: {
     flex: 1,
@@ -209,7 +210,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 18,
-    color: '#e0e7ff',
+    color: '#dcfce7', // primary.100
     marginTop: 8,
     textAlign: 'center',
   },
@@ -220,20 +221,20 @@ const styles = StyleSheet.create({
   loginTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1e40af',
+    color: colors.secondary[800],
     textAlign: 'center',
     marginBottom: 30,
   },
   errorContainer: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: colors.danger,
     borderRadius: 8,
     padding: 12,
     marginBottom: 20,
   },
   errorText: {
-    color: '#dc2626',
+    color: colors.danger,
     fontSize: 14,
     textAlign: 'center',
   },
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
   },
   helpText: {
     fontSize: 14,
-    color: '#c7d2fe',
+    color: '#bbf7d0', // primary.200
     textAlign: 'center',
     marginTop: 30,
     lineHeight: 20,

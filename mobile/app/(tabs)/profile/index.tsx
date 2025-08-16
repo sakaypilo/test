@@ -114,32 +114,32 @@ export default function ProfileScreen() {
           <Text style={styles.sectionTitle}>Informations Personnelles</Text>
           
           <InfoRow
-            icon={<Badge size={20} color="#1e40af" />}
+            icon={<Badge size={20} color="#00A550" />}
             label="Matricule"
             value={user.matricule}
           />
-          
+
           <InfoRow
-            icon={<Mail size={20} color="#1e40af" />}
+            icon={<Mail size={20} color="#00A550" />}
             label="Email"
             value={user.email}
           />
-          
+
           <InfoRow
-            icon={<Phone size={20} color="#1e40af" />}
+            icon={<Phone size={20} color="#00A550" />}
             label="Téléphone"
             value={user.telephone}
           />
-          
+
           <InfoRow
-            icon={<Shield size={20} color="#1e40af" />}
+            icon={<Shield size={20} color="#00A550" />}
             label="Rôle"
             value={user.role === 'agent' ? 'Agent de Sécurité' : 'Technicien'}
           />
-          
+
           {user.lastLogin && (
             <InfoRow
-              icon={<Calendar size={20} color="#1e40af" />}
+              icon={<Calendar size={20} color="#00A550" />}
               label="Dernière connexion"
               value={new Date(user.lastLogin).toLocaleString('fr-FR')}
             />
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   header: {
-    backgroundColor: '#1e40af',
+    backgroundColor: '#00A550', // primary.500
     padding: isTablet ? 30 : 20,
     paddingTop: isTablet ? 60 : 50,
   },
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: isTablet ? 16 : 14,
-    color: '#c7d2fe',
+    color: '#bbf7d0', // primary.200
     marginTop: 4,
   },
   content: {
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     width: isTablet ? 100 : 80,
     height: isTablet ? 100 : 80,
     borderRadius: isTablet ? 50 : 40,
-    backgroundColor: '#1e40af',
+    backgroundColor: '#00A550', // primary.500
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,

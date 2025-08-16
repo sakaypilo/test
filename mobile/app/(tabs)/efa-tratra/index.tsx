@@ -10,7 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { router } from 'expo-router';
-import { useIncidentsStore } from '@/stores/incidents';
+import { usePersonnesStore } from '@/stores/personnes';
 import { apiService } from '@/services/api';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -21,19 +21,21 @@ import { Users, Plus, Calendar, User, Phone, MapPin, CircleAlert as AlertCircle 
 const { width } = Dimensions.get('window');
 const isTablet = width > 768;
 
-export default function EfaTratraScreen() {
+export default function PersonnesScreen() {
   const {
-    efaTratra,
+    personnes,
+    setPersonnes,
+    setSelectedPersonne,
     isLoading,
     error,
     setLoading,
     setError,
-  } = useIncidentsStore();
+  } = usePersonnesStore();
   
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'tous' | 'en_garde_a_vue' | 'libere' | 'transfere'>('tous');
 
-  const loadEfaTratra = async (isRefresh = false) => {
+  const loadPersonnes = async (isRefresh = false) => {
     if (isRefresh) {
       setRefreshing(true);
     } else {
@@ -43,15 +45,15 @@ export default function EfaTratraScreen() {
 
     try {
       const response = await apiService.getEfaTratra();
-      
+
       if (response.success && response.data) {
-        // Les données sont maintenant correctement adaptées depuis Laravel
-        console.log('Données Efa Tratra chargées:', response.data);
+        setPersonnes(response.data);
+        console.log('Données personnes chargées:', response.data);
       } else {
         setError(response.message || 'Erreur lors du chargement');
       }
     } catch (err) {
-      setError('Erreur de connexion au serveur Laravel');
+      setError('Erreur de connexion au serveur');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -59,16 +61,17 @@ export default function EfaTratraScreen() {
   };
 
   useEffect(() => {
-    loadEfaTratra();
+    loadPersonnes();
   }, []);
 
   const onRefresh = () => {
-    loadEfaTratra(true);
+    loadPersonnes(true);
   };
 
   const handlePersonPress = (person: any) => {
-    // Navigate to person details
-    router.push(`/(tabs)/efa-tratra/details?id=${person.id}`);
+    setSelectedPersonne(person);
+    const personId = person.idPersonne || person.id;
+    router.push(`/(tabs)/efa-tratra/details?id=${personId}`);
   };
 
   const handleAddPerson = () => {
@@ -76,8 +79,13 @@ export default function EfaTratraScreen() {
   };
 
   const getFilteredPersons = () => {
-    if (filter === 'tous') return efaTratra;
-    return efaTratra.filter(person => person.statut === filter);
+    if (filter === 'tous') return personnes;
+    // Filtrer par le statut de la dernière interpellation
+    return personnes.filter(person => {
+      if (!person.interpellations || person.interpellations.length === 0) return false;
+      const lastInterpellation = person.interpellations[person.interpellations.length - 1];
+      return lastInterpellation.statut === filter;
+    });
   };
 
   const getStatusColor = (statut: string) => {
@@ -98,15 +106,15 @@ export default function EfaTratraScreen() {
     }
   };
 
-  if (isLoading && !efaTratra.length) {
+  if (isLoading && !personnes.length) {
     return <LoadingSpinner message="Chargement des personnes appréhendées..." />;
   }
 
-  if (error && !efaTratra.length) {
+  if (error && !personnes.length) {
     return (
-      <ErrorMessage 
-        message={error} 
-        onRetry={() => loadEfaTratra()} 
+      <ErrorMessage
+        message={error}
+        onRetry={() => loadPersonnes()}
       />
     );
   }
@@ -116,15 +124,15 @@ export default function EfaTratraScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Efa Tratra</Text>
+        <Text style={styles.title}>Interpellations</Text>
         <Text style={styles.subtitle}>
-          Personnes appréhendées - {efaTratra.length} enregistrements
+          Personnes appréhendées - {personnes.length} enregistrements
         </Text>
       </View>
 
       <View style={styles.actions}>
         <Button
-          title="Nouvelle Appréhension"
+          title="Nouvelle Interpellation"
           onPress={handleAddPerson}
           variant="primary"
           style={styles.addButton}
@@ -166,14 +174,14 @@ export default function EfaTratraScreen() {
               {filter === 'tous' ? 'Aucune personne' : `Aucune personne ${getStatusText(filter).toLowerCase()}`}
             </Text>
             <Text style={styles.emptyMessage}>
-              {filter === 'tous' 
-                ? 'Aucune appréhension enregistrée pour le moment'
+              {filter === 'tous'
+                ? 'Aucune interpellation enregistrée pour le moment'
                 : `Aucune personne avec le statut "${getStatusText(filter).toLowerCase()}" trouvée`
               }
             </Text>
             {filter === 'tous' && (
               <Button
-                title="Première appréhension"
+                title="Première interpellation"
                 onPress={handleAddPerson}
                 variant="primary"
                 style={styles.emptyButton}
@@ -182,9 +190,9 @@ export default function EfaTratraScreen() {
           </Card>
         ) : (
           <View style={styles.personsGrid}>
-            {filteredPersons.map((person) => (
+            {filteredPersons.map((person, index) => (
               <TouchableOpacity
-                key={person.id}
+                key={person.idPersonne || person.id || index}
                 onPress={() => handlePersonPress(person)}
                 activeOpacity={0.8}
               >
@@ -204,47 +212,57 @@ export default function EfaTratraScreen() {
                       <Text style={styles.personName}>
                         {person.prenom} {person.nom}
                       </Text>
-                      {person.age && (
-                        <Text style={styles.personAge}>{person.age} ans</Text>
-                      )}
+                      <Text style={styles.personCIN}>
+                        CIN: {person.CIN || 'Non renseigné'}
+                      </Text>
                     </View>
-                    
+
                     <View style={[
                       styles.statusBadge,
                       { backgroundColor: `${getStatusColor(person.statut)}15` }
                     ]}>
                       <Text style={[styles.statusText, { color: getStatusColor(person.statut) }]}>
-                        {getStatusText(person.statut)}
+                        {(person.statut || '').toUpperCase()}
                       </Text>
                     </View>
                   </View>
                   
                   <View style={styles.personDetails}>
-                    {person.telephone && (
-                      <View style={styles.detailRow}>
-                        <Phone size={14} color="#64748b" />
-                        <Text style={styles.detailText}>{person.telephone}</Text>
-                      </View>
-                    )}
-                    
                     <View style={styles.detailRow}>
                       <Calendar size={14} color="#64748b" />
                       <Text style={styles.detailText}>
-                        {new Date(person.dateApprehension).toLocaleDateString('fr-FR')}
+                        {person.created_at
+                          ? `Enregistré le ${new Date(person.created_at).toLocaleDateString('fr-FR')}`
+                          : `Appréhendé le ${new Date(person.dateApprehension).toLocaleDateString('fr-FR')}`
+                        }
                       </Text>
                     </View>
-                    
-                    <View style={styles.detailRow}>
-                      <User size={14} color="#64748b" />
-                      <Text style={styles.detailText}>Agent: {person.agent}</Text>
-                    </View>
+
+                    {((person.interpellations && person.interpellations.length > 0) ||
+                      (person.faitsAssocies && person.faitsAssocies.length > 0)) && (
+                      <View style={styles.detailRow}>
+                        <AlertCircle size={14} color="#64748b" />
+                        <Text style={styles.detailText}>
+                          {person.interpellations
+                            ? `${person.interpellations.length} interpellation(s)`
+                            : `${person.faitsAssocies.length} fait(s) associé(s)`
+                          }
+                        </Text>
+                      </View>
+                    )}
                   </View>
                   
-                  {person.faitsAssocies.length > 0 && (
+                  {((person.interpellations && person.interpellations.length > 0) ||
+                    (person.faitsAssocies && person.faitsAssocies.length > 0)) && (
                     <View style={styles.factsContainer}>
-                      <Text style={styles.factsTitle}>Faits associés:</Text>
+                      <Text style={styles.factsTitle}>
+                        {person.interpellations ? 'Dernier fait:' : 'Faits associés:'}
+                      </Text>
                       <Text style={styles.factsText} numberOfLines={2}>
-                        {person.faitsAssocies.join(', ')}
+                        {person.interpellations
+                          ? person.interpellations[person.interpellations.length - 1]?.faitAssocie
+                          : person.faitsAssocies?.join(', ')
+                        }
                       </Text>
                     </View>
                   )}
@@ -264,7 +282,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   header: {
-    backgroundColor: '#1e40af',
+    backgroundColor: '#00A550', // primary.500
     padding: isTablet ? 30 : 20,
     paddingTop: isTablet ? 60 : 50,
   },
@@ -275,7 +293,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: isTablet ? 16 : 14,
-    color: '#c7d2fe',
+    color: '#bbf7d0', // primary.200
     marginTop: 4,
   },
   actions: {
@@ -302,8 +320,8 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   filterButtonActive: {
-    backgroundColor: '#1e40af',
-    borderColor: '#1e40af',
+    backgroundColor: '#00A550', // primary.500
+    borderColor: '#00A550', // primary.500
   },
   filterText: {
     fontSize: isTablet ? 14 : 12,
@@ -374,7 +392,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1e293b',
   },
-  personAge: {
+  personCIN: {
     fontSize: isTablet ? 14 : 12,
     color: '#64748b',
     marginTop: 2,
