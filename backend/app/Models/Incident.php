@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\HasTrash;
 
 class Incident extends Model
 {
-    use HasFactory;
+    use HasFactory, HasTrash;
 
     protected $table = 'incidents';
     protected $primaryKey = 'idIncident';
@@ -23,18 +24,18 @@ class Incident extends Model
         'photo4',
         'photo5',
         'photo6',
-        'photo1',
-        'photo2',
-        'photo3',
-        'photo4',
-        'photo5',
-        'photo6',
         'statut',
         'idCamera',
         'idUtilisateur',
         'validePar',
         'dateValidation',
-        'commentaireValidation'
+        'commentaireValidation',
+        'actif',
+        'deleted_at',
+        'deleted_by',
+        'deletion_reason',
+        'restored_at',
+        'restored_by'
     ];
 
     protected $casts = [

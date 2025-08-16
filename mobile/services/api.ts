@@ -68,10 +68,57 @@ function mapIncidentType(input: any): IncidentTypeUnion {
 
 
 class ApiService {
+  /**
+   * Mapper le rôle utilisateur de Laravel vers le format mobile
+   */
+  private mapUserRole(laravelRole: string): 'agent' | 'technicien' | 'responsable' | 'admin' {
+    switch (laravelRole?.toLowerCase()) {
+      case 'admin':
+        return 'admin';
+      case 'responsable':
+        return 'responsable';
+      case 'agent':
+        return 'agent';
+      case 'technicien':
+        return 'technicien';
+      default:
+        console.warn(`Rôle inconnu reçu de Laravel: ${laravelRole}, utilisation de 'agent' par défaut`);
+        return 'agent'; // Valeur par défaut sécurisée
+    }
+  }
+
+  private async makeRequest<T>(
+    endpoint: string,
+    method: string = 'GET',
+    data?: any,
+    headers?: Record<string, string>
+  ): Promise<ApiResponse<T>>;
   private async makeRequest<T>(
     endpoint: string,
     options: RequestInit = {}
+  ): Promise<ApiResponse<T>>;
+  private async makeRequest<T>(
+    endpoint: string,
+    methodOrOptions: string | RequestInit = 'GET',
+    data?: any,
+    headers?: Record<string, string>
   ): Promise<ApiResponse<T>> {
+    let options: RequestInit;
+
+    if (typeof methodOrOptions === 'string') {
+      // Nouvelle signature: makeRequest(endpoint, method, data, headers)
+      options = {
+        method: methodOrOptions,
+        ...(data && { body: JSON.stringify(data) }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+      };
+    } else {
+      // Ancienne signature: makeRequest(endpoint, options)
+      options = methodOrOptions;
+    }
     try {
       const { token } = useAuthStore.getState();
 
@@ -174,13 +221,14 @@ class ApiService {
         data: {
           user: {
             id: (response.data.user as any).idUtilisateur.toString(),
+            idUtilisateur: (response.data.user as any).idUtilisateur, // Garder l'ID numérique pour les permissions
             matricule: (response.data.user as any).matricule,
             nom: (response.data.user as any).nom,
             prenom: (response.data.user as any).prenom,
             email: (response.data.user as any).email,
             telephone: (response.data.user as any).telephone,
-            role: (response.data.user as any).role === 'agent' ? 'agent' : 'technicien',
-            isActive: true,
+            role: this.mapUserRole((response.data.user as any).role),
+            isActive: (response.data.user as any).actif !== false, // Mapper le champ 'actif' de Laravel
           },
           token: (response as any).token || (response.data as any).token,
           refreshToken: (response as any).token || (response.data as any).token, // Laravel Sanctum n'utilise pas de refresh token
@@ -356,7 +404,10 @@ class ApiService {
         .filter((incident) => incident && incident.idIncident) // Filtrer les incidents invalides
         .map((incident) => ({
           id: String(incident.idIncident || Date.now()), // Fallback si idIncident est undefined
+          idIncident: incident.idIncident, // Garder l'ID original
+          idUtilisateur: incident.idUtilisateur, // IMPORTANT: Ajouter l'ID utilisateur pour les permissions
           type: mapIncidentType(incident.typeIncident),
+          typeIncident: incident.typeIncident, // Garder le type original
           description: incident.description || 'Description non disponible',
           dateIncident: incident.dateHeure ? new Date(incident.dateHeure) : new Date(),
           zone: incident.zone || 'Zone non spécifiée',
@@ -376,6 +427,7 @@ class ApiService {
           temoins: [],
           mesuresPrises: 'Mesures prises selon protocole',
           statut: incident.statut === 'valide' ? 'clos' : 'en_cours',
+          actif: incident.actif !== false, // Ajouter le champ actif pour le filtrage
           latitude: -18.1569,
           longitude: 49.4085,
           personnesImpliquees: [],
@@ -574,6 +626,80 @@ class ApiService {
   // Nouvelles méthodes pour les détails
   async getCameraDetails(id: number): Promise<ApiResponse<any>> {
     return this.makeRequest(`/cameras/${id}`);
+  }
+
+  // === MÉTHODES DE CORBEILLE ===
+
+  async getTrashItems(type?: string): Promise<ApiResponse<any[]>> {
+    const params = type ? `?type=${type}` : '';
+    return this.makeRequest(`/trash${params}`);
+  }
+
+  async restoreFromTrash(type: string, id: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/trash/${type}/${id}/restore`, 'POST');
+  }
+
+  async permanentDelete(type: string, id: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/trash/${type}/${id}/permanent`, 'DELETE');
+  }
+
+  async emptyTrash(daysOld?: number): Promise<ApiResponse<any>> {
+    const data = daysOld ? { days_old: daysOld } : {};
+    return this.makeRequest('/trash/empty', 'POST', data);
+  }
+
+  // === MÉTHODES DE MODIFICATION ===
+
+  async updateIncident(id: string, data: any): Promise<ApiResponse<Incident>> {
+    const formData = new FormData();
+
+    // Ajouter les champs de base
+    Object.keys(data).forEach(key => {
+      if (key !== 'photos' && data[key] !== undefined && data[key] !== null) {
+        formData.append(key, data[key]);
+      }
+    });
+
+    // Ajouter les photos si présentes
+    if (data.photos && Array.isArray(data.photos)) {
+      data.photos.forEach((photo: string, index: number) => {
+        if (photo) {
+          formData.append(`photos[${index}]`, {
+            uri: photo,
+            type: 'image/jpeg',
+            name: `photo_${index}.jpg`,
+          } as any);
+        }
+      });
+    }
+
+    return this.makeRequest(`/incidents/${id}`, 'PUT', formData, {
+      'Content-Type': 'multipart/form-data',
+    });
+  }
+
+  async deleteIncident(id: string, reason?: string): Promise<ApiResponse<any>> {
+    const data = reason ? { reason } : {};
+    return this.makeRequest(`/incidents/${id}/delete`, 'DELETE', data);
+  }
+
+  async restoreIncident(id: string): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/incidents/${id}/restore`, 'POST');
+  }
+
+  async deleteCamera(id: string, reason?: string): Promise<ApiResponse<any>> {
+    const data = reason ? { reason } : {};
+    return this.makeRequest(`/cameras/${id}/delete`, 'DELETE', data);
+  }
+
+  async deletePerson(id: string, reason?: string): Promise<ApiResponse<any>> {
+    const data = reason ? { reason } : {};
+    return this.makeRequest(`/personnes/${id}/delete`, 'DELETE', data);
+  }
+
+  async getDeletedItems(type?: string): Promise<ApiResponse<any[]>> {
+    const params = type ? `?type=${type}` : '';
+    return this.makeRequest(`/deleted${params}`);
   }
 
   async getIncidentDetails(id: string): Promise<ApiResponse<Incident>> {

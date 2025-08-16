@@ -6,17 +6,34 @@ import {
   ScrollView,
   Dimensions,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
+import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/auth';
 import { apiService } from '@/services/api';
 import Card from '@/components/ui/Card';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import ErrorMessage from '@/components/ui/ErrorMessage';
 import { DashboardStats } from '@/types';
-import { Camera, Wifi, WifiOff, TriangleAlert as AlertTriangle, Calendar, Users, MapPin } from 'lucide-react-native';
+import { Camera, Wifi, WifiOff, TriangleAlert as AlertTriangle, Calendar, Users, MapPin, Trash2 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 const isTablet = width > 768;
+
+const getRoleDisplayName = (role: string): string => {
+  switch (role?.toLowerCase()) {
+    case 'admin':
+      return 'Administrateur';
+    case 'responsable':
+      return 'Responsable Sécurité';
+    case 'agent':
+      return 'Agent de Sécurité';
+    case 'technicien':
+      return 'Technicien';
+    default:
+      return 'Utilisateur';
+  }
+};
 
 export default function DashboardScreen() {
   const { user } = useAuthStore();
@@ -99,20 +116,33 @@ export default function DashboardScreen() {
       }
     >
       <View style={styles.header}>
-        <Text style={styles.welcomeText}>
-          Bonjour, {user?.prenom} {user?.nom}
-        </Text>
-        <Text style={styles.roleText}>
-          {user?.role === 'agent' ? 'Agent de Sécurité' : 'Technicien'}
-        </Text>
-        <Text style={styles.dateText}>
-          {new Date().toLocaleDateString('fr-FR', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </Text>
+        <View style={styles.headerContent}>
+          <View style={styles.headerText}>
+            <Text style={styles.welcomeText}>
+              Bonjour, {user?.prenom} {user?.nom}
+            </Text>
+            <Text style={styles.roleText}>
+              {user ? getRoleDisplayName(user.role) : 'Utilisateur'}
+            </Text>
+            <Text style={styles.dateText}>
+              {new Date().toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </Text>
+          </View>
+
+          {user && ['admin', 'responsable'].includes(user.role) && (
+            <TouchableOpacity
+              style={styles.trashButton}
+              onPress={() => router.push('/simple-trash')}
+            >
+              <Trash2 size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {stats && (
@@ -225,6 +255,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#00A550', // primary.500
     padding: isTablet ? 30 : 20,
     paddingTop: isTablet ? 60 : 50,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerText: {
+    flex: 1,
+  },
+  trashButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 16,
   },
   welcomeText: {
     fontSize: isTablet ? 28 : 24,

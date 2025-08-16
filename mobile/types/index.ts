@@ -1,5 +1,6 @@
 export interface User {
   id: string; // idUtilisateur dans Laravel
+  idUtilisateur?: number; // ID numérique original de Laravel (pour les permissions)
   matricule: string;
   nom: string;
   prenom: string;
@@ -46,7 +47,10 @@ export interface Mutation {
 
 export interface Incident {
   id: string; // idIncident dans Laravel
+  idIncident?: number; // ID original de Laravel
+  idUtilisateur?: number; // ID de l'utilisateur qui a créé l'incident (IMPORTANT pour permissions)
   type: string; // typeIncident dans Laravel
+  typeIncident?: string; // Type original de Laravel
   description: string;
   dateIncident: Date; // dateHeure dans Laravel
   dateHeure?: Date; // alias pour compatibilité
@@ -57,6 +61,7 @@ export interface Incident {
   temoins?: string[]; // pas dans le modèle Laravel actuel
   mesuresPrises?: string; // pas dans le modèle Laravel actuel
   statut: 'en_attente' | 'valide' | 'rejete'; // statut dans Laravel
+  actif?: boolean; // Champ pour savoir si l'incident est supprimé ou non
   latitude?: number; // pas dans le modèle Laravel actuel
   longitude?: number; // pas dans le modèle Laravel actuel
   personnesImpliquees?: string[]; // pas dans le modèle Laravel actuel

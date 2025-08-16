@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\HasTrash;
 
 class Camera extends Model
 {
-    use HasFactory;
+    use HasFactory, HasTrash;
 
     protected $table = 'cameras';
     protected $primaryKey = 'idCamera';
@@ -19,7 +20,13 @@ class Camera extends Model
         'emplacement',
         'statut',
         'dateInstallation',
-        'idTechnicien'
+        'idTechnicien',
+        'actif',
+        'deleted_at',
+        'deleted_by',
+        'deletion_reason',
+        'restored_at',
+        'restored_by'
     ];
 
     protected $casts = [

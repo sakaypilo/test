@@ -163,4 +163,16 @@ export const usersAPI = {
     api.get('/users-statistics').then(res => res.data),
 }
 
+// API pour la corbeille
+export const trashAPI = {
+  getAll: (type?: string): Promise<ApiResponse> =>
+    api.get('/trash', { params: { type } }).then(res => res.data),
+  restore: (type: string, id: number): Promise<ApiResponse> =>
+    api.post(`/trash/${type}/${id}/restore`).then(res => res.data),
+  permanentDelete: (type: string, id: number): Promise<ApiResponse> =>
+    api.delete(`/trash/${type}/${id}/permanent`).then(res => res.data),
+  emptyTrash: (daysOld?: number): Promise<ApiResponse> =>
+    api.post('/trash/empty', { days_old: daysOld }).then(res => res.data)
+}
+
 export default api

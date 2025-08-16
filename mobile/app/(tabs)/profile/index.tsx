@@ -24,11 +24,42 @@ import {
   LogOut,
   Shield,
   Download,
-  Camera
+  Camera,
+  Trash2
 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 const isTablet = width > 768;
+
+const getRoleDisplayName = (role: string): string => {
+  switch (role?.toLowerCase()) {
+    case 'admin':
+      return 'Administrateur';
+    case 'responsable':
+      return 'Responsable Sécurité';
+    case 'agent':
+      return 'Agent de Sécurité';
+    case 'technicien':
+      return 'Technicien';
+    default:
+      return 'Utilisateur';
+  }
+};
+
+const getRoleColor = (role: string): string => {
+  switch (role?.toLowerCase()) {
+    case 'admin':
+      return '#dc2626'; // Rouge
+    case 'responsable':
+      return '#ea580c'; // Orange
+    case 'agent':
+      return '#2563eb'; // Bleu
+    case 'technicien':
+      return '#16a34a'; // Vert
+    default:
+      return '#6b7280'; // Gris
+  }
+};
 
 export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
@@ -69,6 +100,10 @@ export default function ProfileScreen() {
     );
   };
 
+  const handleTrash = () => {
+    router.push('/simple-trash');
+  };
+
   if (!user) {
     return (
       <View style={styles.container}>
@@ -105,9 +140,11 @@ export default function ProfileScreen() {
               <User size={isTablet ? 48 : 40} color="#ffffff" />
             </View>
             <Text style={styles.userName}>{user.prenom} {user.nom}</Text>
-            <Text style={styles.userRole}>
-              {user.role === 'agent' ? 'Agent de Sécurité' : 'Technicien'}
-            </Text>
+            <View style={[styles.roleBadge, { backgroundColor: getRoleColor(user.role) }]}>
+              <Text style={styles.roleBadgeText}>
+                {getRoleDisplayName(user.role)}
+              </Text>
+            </View>
           </View>
         </Card>
 
@@ -135,7 +172,7 @@ export default function ProfileScreen() {
           <InfoRow
             icon={<Shield size={20} color="#00A550" />}
             label="Rôle"
-            value={user.role === 'agent' ? 'Agent de Sécurité' : 'Technicien'}
+            value={getRoleDisplayName(user.role)}
           />
 
           {user.lastLogin && (
@@ -163,6 +200,15 @@ export default function ProfileScreen() {
             </View>
             <Text style={styles.actionText}>Télécharger mes rapports</Text>
           </TouchableOpacity>
+
+          {user && ['admin', 'responsable'].includes(user.role) && (
+            <TouchableOpacity style={styles.actionRow} onPress={handleTrash}>
+              <View style={styles.actionIcon}>
+                <Trash2 size={20} color="#64748b" />
+              </View>
+              <Text style={styles.actionText}>Accéder à la corbeille</Text>
+            </TouchableOpacity>
+          )}
         </Card>
 
         <Card style={styles.dangerCard}>
@@ -242,6 +288,18 @@ const styles = StyleSheet.create({
     fontSize: isTablet ? 16 : 14,
     color: '#64748b',
     fontWeight: '500',
+  },
+  roleBadge: {
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginTop: 8,
+  },
+  roleBadgeText: {
+    color: '#fff',
+    fontSize: isTablet ? 14 : 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   infoCard: {
     marginBottom: 20,

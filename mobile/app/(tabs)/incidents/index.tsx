@@ -10,12 +10,14 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useIncidentsStore } from '@/stores/incidents';
+import { useAuthStore } from '@/stores/auth';
 import { apiService } from '@/services/api';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import ErrorMessage from '@/components/ui/ErrorMessage';
-import { TriangleAlert as AlertTriangle, Plus, Calendar, MapPin, Clock, CircleCheck as CheckCircle, Circle as XCircle } from 'lucide-react-native';
+import IncidentListItem from '@/components/lists/IncidentListItem';
+import { TriangleAlert as AlertTriangle, Plus, Calendar, MapPin, Clock, CircleCheck as CheckCircle, Circle as XCircle, Trash2 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 const isTablet = width > 768;
@@ -30,6 +32,8 @@ export default function IncidentsScreen() {
     setLoading,
     setError,
   } = useIncidentsStore();
+
+  const { user } = useAuthStore();
   
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'tous' | 'en_cours' | 'clos'>('tous');
@@ -75,9 +79,21 @@ export default function IncidentsScreen() {
     router.push('/(tabs)/incidents/add');
   };
 
+  const handleTrash = () => {
+    router.push('/simple-trash');
+  };
+
   const getFilteredIncidents = () => {
-    if (filter === 'tous') return incidents;
-    return incidents.filter(incident => incident.statut === filter);
+    // D'abord filtrer les incidents actifs (non supprimés)
+    const activeIncidents = incidents.filter(incident => {
+      // Vérifier si l'incident est actif (pas supprimé)
+      // Si le champ actif n'existe pas, on considère l'incident comme actif
+      return incident.actif !== false;
+    });
+
+    // Ensuite filtrer par statut si nécessaire
+    if (filter === 'tous') return activeIncidents;
+    return activeIncidents.filter(incident => incident.statut === filter);
   };
 
   const getTypeColor = (type: string) => {
@@ -124,6 +140,14 @@ export default function IncidentsScreen() {
           variant="primary"
           style={styles.addButton}
         />
+        {user && ['admin', 'responsable'].includes(user.role) && (
+          <TouchableOpacity
+            style={styles.trashButton}
+            onPress={handleTrash}
+          >
+            <Trash2 size={20} color="#fff" />
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.filters}>
@@ -176,56 +200,13 @@ export default function IncidentsScreen() {
             )}
           </Card>
         ) : (
-          <View style={styles.incidentsGrid}>
+          <View style={styles.incidentsList}>
             {filteredIncidents.map((incident) => (
-              <TouchableOpacity
-                key={incident.id}
-                onPress={() => handleIncidentPress(incident)}
-                activeOpacity={0.8}
-              >
-                <Card style={styles.incidentCard}>
-                  <View style={styles.incidentHeader}>
-                    <View style={styles.typeContainer}>
-                      {getTypeIcon(incident.type)}
-                      <Text style={[styles.typeText, { color: getTypeColor(incident.type) }]}>
-                        {(incident.type || '').toUpperCase()}
-                      </Text>
-                    </View>
-                    <View style={styles.statusContainer}>
-                      {incident.statut === 'en_cours' ? (
-                        <Clock size={16} color="#f59e0b" />
-                      ) : (
-                        <CheckCircle size={16} color="#10b981" />
-                      )}
-                    </View>
-                  </View>
-                  
-                  <Text style={styles.incidentDescription} numberOfLines={2}>
-                    {incident.description}
-                  </Text>
-                  
-                  <View style={styles.incidentMeta}>
-                    <View style={styles.metaRow}>
-                      <Calendar size={14} color="#64748b" />
-                      <Text style={styles.metaText}>
-                        {new Date(incident.dateIncident).toLocaleDateString('fr-FR')}
-                      </Text>
-                    </View>
-                    <View style={styles.metaRow}>
-                      <MapPin size={14} color="#64748b" />
-                      <Text style={styles.metaText}>{incident.zone}</Text>
-                    </View>
-                  </View>
-                  
-                  {incident.photos.length > 0 && (
-                    <View style={styles.photosIndicator}>
-                      <Text style={styles.photosText}>
-                        📷 {incident.photos.length} photo(s)
-                      </Text>
-                    </View>
-                  )}
-                </Card>
-              </TouchableOpacity>
+              <IncidentListItem
+                key={incident.idIncident || incident.id}
+                incident={incident}
+                onRefresh={() => loadIncidents(true)}
+              />
             ))}
           </View>
         )}
@@ -256,6 +237,8 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 20,
     paddingBottom: 10,
     gap: 12,
@@ -264,6 +247,15 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  trashButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
   },
   filters: {
     flexDirection: 'row',
@@ -315,6 +307,10 @@ const styles = StyleSheet.create({
   },
   emptyButton: {
     paddingHorizontal: 30,
+  },
+  incidentsList: {
+    padding: 16,
+    gap: 8,
   },
   incidentsGrid: {
     flexDirection: 'row',

@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\HasTrash;
 
 class Personne extends Model
 {
-    use HasFactory;
+    use HasFactory, HasTrash;
 
     protected $table = 'personnes';
     protected $primaryKey = 'idPersonne';
@@ -18,7 +19,12 @@ class Personne extends Model
         'CIN',
         'statut',
         'photo',
-        'actif', 
+        'actif',
+        'deleted_at',
+        'deleted_by',
+        'deletion_reason',
+        'restored_at',
+        'restored_by'
     ];
 
     protected static function booted()

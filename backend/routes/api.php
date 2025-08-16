@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\CameraController;
 use App\Http\Controllers\Api\PersonneController;
 use App\Http\Controllers\Api\RapportController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\TrashController;
+use App\Http\Controllers\Api\SimpleActionsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -57,6 +59,47 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
     Route::post('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
     Route::get('/users-statistics', [UserController::class, 'statistics']);
+
+    // Routes pour la corbeille
+    Route::prefix('trash')->group(function () {
+        Route::get('/', [TrashController::class, 'index']);
+        Route::post('/{type}/{id}/restore', [TrashController::class, 'restore']);
+        Route::delete('/{type}/{id}/permanent', [TrashController::class, 'permanentDelete']);
+        Route::post('/empty', [TrashController::class, 'emptyTrash']);
+    });
+
+    // Routes d'actions simples
+    Route::delete('/incidents/{id}/delete', [SimpleActionsController::class, 'deleteIncident']);
+    Route::post('/incidents/{id}/restore', [SimpleActionsController::class, 'restoreIncident']);
+    Route::delete('/cameras/{id}/delete', [SimpleActionsController::class, 'deleteCamera']);
+    Route::delete('/personnes/{id}/delete', [SimpleActionsController::class, 'deletePerson']);
+    Route::get('/deleted', [SimpleActionsController::class, 'getDeleted']);
+
+    // Route de debug pour vérifier les permissions
+    Route::get('/debug/user-incidents', function (Request $request) {
+        $user = $request->user();
+        $incidents = \App\Models\Incident::where('idUtilisateur', $user->idUtilisateur)->get();
+
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'id' => $user->idUtilisateur,
+                'nom' => $user->nom,
+                'role' => $user->role,
+                'matricule' => $user->matricule
+            ],
+            'incidents_count' => $incidents->count(),
+            'incidents' => $incidents->map(function($incident) {
+                return [
+                    'id' => $incident->idIncident,
+                    'type' => $incident->typeIncident,
+                    'description' => $incident->description,
+                    'user_id' => $incident->idUtilisateur,
+                    'actif' => $incident->actif ?? true
+                ];
+            })
+        ]);
+    });
 });
 
 // Route de test
