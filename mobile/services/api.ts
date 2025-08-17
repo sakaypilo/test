@@ -573,6 +573,12 @@ class ApiService {
     return response as ApiResponse<any[]>;
   }
 
+  async deleteEfaTratra(id: number): Promise<ApiResponse<any>> {
+    return this.makeRequest(`/personnes/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
 
 
 

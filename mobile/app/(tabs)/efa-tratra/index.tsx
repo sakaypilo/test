@@ -8,6 +8,7 @@ import {
   Dimensions,
   RefreshControl,
   Image,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { usePersonnesStore } from '@/stores/personnes';
@@ -16,7 +17,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import ErrorMessage from '@/components/ui/ErrorMessage';
-import { Users, Plus, Calendar, User, Phone, MapPin, CircleAlert as AlertCircle } from 'lucide-react-native';
+import { Users, Plus, Calendar, User, Phone, MapPin, CircleAlert as AlertCircle, Trash2 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 const isTablet = width > 768;
@@ -104,6 +105,41 @@ export default function PersonnesScreen() {
       case 'transfere': return 'Transféré';
       default: return statut;
     }
+  };
+
+  const handleDeletePerson = async (person: any) => {
+    Alert.alert(
+      'Supprimer la personne',
+      `Êtes-vous sûr de vouloir supprimer ${person.prenom} ${person.nom} ?\n\nCette action supprimera également toutes les interpellations associées.`,
+      [
+        {
+          text: 'Annuler',
+          style: 'cancel',
+        },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const response = await apiService.deleteEfaTratra(person.idPersonne || person.id);
+
+              if (response.success) {
+                // Recharger la liste
+                await loadPersonnes();
+                Alert.alert('Succès', 'Personne supprimée avec succès');
+              } else {
+                Alert.alert('Erreur', response.message || 'Impossible de supprimer la personne');
+              }
+            } catch (error) {
+              Alert.alert('Erreur', 'Erreur lors de la suppression');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (isLoading && !personnes.length) {
@@ -266,6 +302,21 @@ export default function PersonnesScreen() {
                       </Text>
                     </View>
                   )}
+
+                  {/* Actions */}
+                  <View style={styles.cardActions}>
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={(e) => {
+                        e.stopPropagation(); // Empêcher la navigation vers les détails
+                        handleDeletePerson(person);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Trash2 size={16} color="#dc2626" />
+                      <Text style={styles.deleteButtonText}>Supprimer</Text>
+                    </TouchableOpacity>
+                  </View>
                 </Card>
               </TouchableOpacity>
             ))}
@@ -435,5 +486,29 @@ const styles = StyleSheet.create({
     fontSize: isTablet ? 14 : 12,
     color: '#64748b',
     lineHeight: 18,
+  },
+  cardActions: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  deleteButtonText: {
+    fontSize: 12,
+    color: '#dc2626',
+    fontWeight: '500',
+    marginLeft: 4,
   },
 });
