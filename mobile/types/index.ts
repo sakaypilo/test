@@ -21,8 +21,8 @@ export interface Camera {
   ip: string; // adresseIP dans Laravel
   statut: 'actif' | 'panne' | 'hors_ligne'; // statut dans Laravel
   dateInstallation: Date;
-  latitude?: number; // pas dans le modèle Laravel actuel
-  longitude?: number; // pas dans le modèle Laravel actuel
+  // latitude?: number; // pas dans le modèle Laravel actuel
+  // longitude?: number; // pas dans le modèle Laravel actuel
   historiquePannes?: Panne[]; // optionnel
   historiqueMutations?: Mutation[]; // optionnel
 }

@@ -622,8 +622,38 @@ class ApiService {
     return response as ApiResponse<User>;
   }
   // Nouvelles méthodes pour les détails
-  async getCameraDetails(id: number): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/cameras/${id}`);
+  async getCameraDetails(id: number): Promise<ApiResponse<Camera>> {
+    const response = await this.makeRequest(`/cameras/${id}`);
+
+    if (response.success && response.data && typeof response.data === 'object') {
+      const camera = response.data as any;
+
+      // Transformer les données du backend vers le format mobile
+      const transformedCamera: Camera = {
+        id: camera.idCamera?.toString() || id.toString(),
+        idCamera: camera.idCamera,
+        actif: camera.actif !== false,
+        numero: camera.numeroSerie || 'N/A',
+        zone: camera.zone || 'Zone non spécifiée',
+        emplacement: camera.emplacement || 'Emplacement non spécifié',
+        ip: camera.adresseIP || '0.0.0.0', // Transformation importante ici !
+        statut: camera.statut === 'actif'
+          ? 'en_ligne'
+          : camera.statut === 'panne'
+          ? 'maintenance'
+          : 'hors_ligne' as 'hors_ligne' | 'en_ligne' | 'maintenance',
+        dateInstallation: camera.dateInstallation ? new Date(camera.dateInstallation) : new Date(),
+        historiquePannes: [],
+        historiqueMutations: [],
+      };
+
+      return {
+        success: true,
+        data: transformedCamera
+      };
+    }
+
+    return response as ApiResponse<Camera>;
   }
 
   // === MÉTHODES DE CORBEILLE ===

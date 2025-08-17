@@ -7,12 +7,12 @@ import {
   Alert,
   Dimensions,
 } from 'react-native';
-import * as Location from 'expo-location';
+// import * as Location from 'expo-location';
 import { Camera } from '@/types';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import { MapPin, Wifi } from 'lucide-react-native';
+import { /* MapPin, */ Wifi } from 'lucide-react-native';
 import { TouchableOpacity } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -38,12 +38,12 @@ export default function CameraForm({
     ip: camera?.ip || '',
     statut: camera?.statut || 'hors_ligne' as const,
     dateInstallation: camera?.dateInstallation || new Date(),
-    latitude: camera?.latitude || 0,
-    longitude: camera?.longitude || 0,
+    // latitude: camera?.latitude || 0,
+    // longitude: camera?.longitude || 0,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  // const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -70,40 +70,40 @@ export default function CameraForm({
     return Object.keys(newErrors).length === 0;
   };
 
-  const getCurrentLocation = async () => {
-    setIsGettingLocation(true);
-    
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permission refusée',
-          'L\'accès à la localisation est nécessaire pour enregistrer la position de la caméra.'
-        );
-        return;
-      }
+  // const getCurrentLocation = async () => {
+  //   setIsGettingLocation(true);
+  //
+  //   try {
+  //     const { status } = await Location.requestForegroundPermissionsAsync();
+  //
+  //     if (status !== 'granted') {
+  //       Alert.alert(
+  //         'Permission refusée',
+  //         'L\'accès à la localisation est nécessaire pour enregistrer la position de la caméra.'
+  //       );
+  //       return;
+  //     }
 
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
+  //     const location = await Location.getCurrentPositionAsync({
+  //       accuracy: Location.Accuracy.High,
+  //     });
 
-      setFormData(prev => ({
-        ...prev,
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      }));
+  //     setFormData(prev => ({
+  //       ...prev,
+  //       latitude: location.coords.latitude,
+  //       longitude: location.coords.longitude,
+  //     }));
 
-      Alert.alert('Succès', 'Position géographique mise à jour');
-    } catch (error) {
-      Alert.alert(
-        'Erreur',
-        'Impossible d\'obtenir la position actuelle. Vérifiez vos paramètres de localisation.'
-      );
-    } finally {
-      setIsGettingLocation(false);
-    }
-  };
+  //     Alert.alert('Succès', 'Position géographique mise à jour');
+  //   } catch (error) {
+  //     Alert.alert(
+  //       'Erreur',
+  //       'Impossible d\'obtenir la position actuelle. Vérifiez vos paramètres de localisation.'
+  //     );
+  //   } finally {
+  //     setIsGettingLocation(false);
+  //   }
+  // };
 
   const handleSubmit = () => {
     if (!validateForm()) return;
@@ -191,12 +191,12 @@ export default function CameraForm({
           </View>
         </View>
 
-        <View style={styles.locationSection}>
+        {/* <View style={styles.locationSection}>
           <Text style={styles.locationLabel}>Position géographique</Text>
           <Text style={styles.locationHelp}>
             Position actuelle: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
           </Text>
-          
+
           <Button
             title="Obtenir la position actuelle"
             onPress={getCurrentLocation}
@@ -205,7 +205,7 @@ export default function CameraForm({
             disabled={isGettingLocation}
             style={styles.locationButton}
           />
-        </View>
+        </View> */}
 
         <View style={styles.formActions}>
           <Button
@@ -284,24 +284,24 @@ const styles = StyleSheet.create({
   statusOptionTextActive: {
     color: '#ffffff',
   },
-  locationSection: {
-    marginBottom: 20,
-  },
-  locationLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  locationHelp: {
-    fontSize: 14,
-    color: '#64748b',
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  locationButton: {
-    alignSelf: 'flex-start',
-  },
+  // locationSection: {
+  //   marginBottom: 20,
+  // },
+  // locationLabel: {
+  //   fontSize: 16,
+  //   fontWeight: '600',
+  //   color: '#374151',
+  //   marginBottom: 8,
+  // },
+  // locationHelp: {
+  //   fontSize: 14,
+  //   color: '#64748b',
+  //   marginBottom: 12,
+  //   lineHeight: 20,
+  // },
+  // locationButton: {
+  //   alignSelf: 'flex-start',
+  // },
   formActions: {
     flexDirection: 'row',
     gap: 15,

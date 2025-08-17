@@ -141,7 +141,7 @@ export default function CameraDetailsScreen() {
 
           <View style={styles.infoRow}>
             <Settings size={16} color={colors.secondary[600]} />
-            <Text style={styles.infoText}>IP: {selectedCamera.adresseIP}</Text>
+            <Text style={styles.infoText}>IP: {selectedCamera.ip}</Text>
           </View>
 
           <View style={styles.infoRow}>

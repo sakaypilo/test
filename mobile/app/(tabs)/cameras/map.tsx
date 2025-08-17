@@ -71,7 +71,8 @@ export default function CamerasMapScreen() {
         showsUserLocation
         showsMyLocationButton
       >
-        {cameras.map((camera) => (
+        {/* Temporairement désactivé - position géographique non utilisée */}
+        {/* {cameras.map((camera) => (
           <Marker
             key={camera.id}
             coordinate={{
@@ -96,8 +97,19 @@ export default function CamerasMapScreen() {
               </View>
             </Callout>
           </Marker>
-        ))}
+        ))} */}
       </MapView>
+
+      {/* Message informatif */}
+      <View style={styles.infoMessage}>
+        <Card style={styles.infoCard}>
+          <Text style={styles.infoTitle}>Fonctionnalité temporairement désactivée</Text>
+          <Text style={styles.infoText}>
+            La géolocalisation des caméras n'est pas encore configurée.
+            Les caméras seront affichées sur la carte une fois leurs positions définies.
+          </Text>
+        </Card>
+      </View>
 
       <View style={styles.legend}>
         <Card style={styles.legendCard}>
@@ -188,6 +200,29 @@ const styles = StyleSheet.create({
     color: '#1e40af',
     marginTop: 8,
     textAlign: 'center',
+  },
+  infoMessage: {
+    position: 'absolute',
+    top: 80,
+    left: 20,
+    right: 20,
+  },
+  infoCard: {
+    padding: 16,
+    backgroundColor: '#fef3c7',
+    borderColor: '#f59e0b',
+    borderWidth: 1,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#92400e',
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#78350f',
+    lineHeight: 20,
   },
   legend: {
     position: 'absolute',

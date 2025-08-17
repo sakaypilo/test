@@ -128,12 +128,13 @@ export default function CamerasScreen() {
           variant="primary"
           style={styles.addButton}
         />
-        <Button
+        {/* Temporairement désactivé - géolocalisation non configurée */}
+        {/* <Button
           title="Vue Carte"
           onPress={handleViewMap}
           variant="outline"
           style={styles.mapButton}
-        />
+        /> */}
       </View>
 
       <ScrollView
