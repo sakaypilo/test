@@ -9,7 +9,6 @@ import {
   Alert,
   Dimensions,
 } from 'react-native';
-import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { Incident } from '@/types';
 import { storageService } from '@/services/storage';
@@ -41,20 +40,13 @@ export default function IncidentForm({
     emplacement: incident?.emplacement || '',
     agent: incident?.agent || '',
     photos: incident?.photos || [],
-    temoins: incident?.temoins || [],
     mesuresPrises: incident?.mesuresPrises || '',
     dateIncident: incident?.dateIncident || new Date(),
-    latitude: incident?.latitude || 0,
-    longitude: incident?.longitude || 0,
-    personnesImpliquees: incident?.personnesImpliquees || [],
     statut: incident?.statut || 'en_attente' as const,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [newTemoin, setNewTemoin] = useState('');
-  const [newPersonne, setNewPersonne] = useState('');
   const [isSavingPhoto, setIsSavingPhoto] = useState(false);
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const incidentTypes = [
     { key: 'intrusion', label: 'Intrusion', icon: '🚨' },
@@ -92,40 +84,7 @@ export default function IncidentForm({
     return Object.keys(newErrors).length === 0;
   };
 
-  const getCurrentLocation = async () => {
-    setIsGettingLocation(true);
-    
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permission refusée',
-          'L\'accès à la localisation est nécessaire pour enregistrer le lieu de l\'incident.'
-        );
-        return;
-      }
 
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-
-      setFormData(prev => ({
-        ...prev,
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      }));
-
-      Alert.alert('Succès', 'Position géographique mise à jour');
-    } catch (error) {
-      Alert.alert(
-        'Erreur',
-        'Impossible d\'obtenir la position actuelle.'
-      );
-    } finally {
-      setIsGettingLocation(false);
-    }
-  };
 
   const selectPhotoSource = () => {
     if (formData.photos.length >= 6) {
@@ -268,39 +227,7 @@ export default function IncidentForm({
     }));
   };
 
-  const addTemoin = () => {
-    if (newTemoin.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        temoins: [...prev.temoins, newTemoin.trim()],
-      }));
-      setNewTemoin('');
-    }
-  };
 
-  const removeTemoin = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      temoins: prev.temoins.filter((_, i) => i !== index),
-    }));
-  };
-
-  const addPersonne = () => {
-    if (newPersonne.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        personnesImpliquees: [...(prev.personnesImpliquees || []), newPersonne.trim()],
-      }));
-      setNewPersonne('');
-    }
-  };
-
-  const removePersonne = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      personnesImpliquees: (prev.personnesImpliquees || []).filter((_, i) => i !== index),
-    }));
-  };
 
   const handleSubmit = () => {
     if (!validateForm()) {
@@ -376,24 +303,7 @@ export default function IncidentForm({
           />
         </View>
 
-        <View style={styles.geoSection}>
-          <Text style={styles.sectionLabel}>Position géographique</Text>
-          <Text style={styles.geoText}>
-            {formData.latitude && formData.longitude
-              ? `${formData.latitude.toFixed(6)}, ${formData.longitude.toFixed(6)}`
-              : 'Position non définie'
-            }
-          </Text>
-          <Button
-            title="Obtenir la position actuelle"
-            onPress={getCurrentLocation}
-            variant="outline"
-            loading={isGettingLocation}
-            disabled={isGettingLocation}
-            size="small"
-            style={styles.geoButton}
-          />
-        </View>
+
 
         <View style={styles.photosSection}>
           <Text style={styles.sectionLabel}>Photos ({formData.photos.length}/6)</Text>
@@ -429,61 +339,7 @@ export default function IncidentForm({
           </ScrollView>
         </View>
 
-        <View style={styles.listSection}>
-          <Text style={styles.sectionLabel}>Témoins</Text>
-          <View style={styles.addItemRow}>
-            <Input
-              value={newTemoin}
-              onChangeText={setNewTemoin}
-              placeholder="Nom du témoin"
-              containerStyle={styles.addItemInput}
-            />
-            <Button
-              title="Ajouter"
-              onPress={addTemoin}
-              variant="outline"
-              size="small"
-              disabled={!newTemoin.trim()}
-            />
-          </View>
-          
-          {formData.temoins.map((temoin, index) => (
-            <View key={index} style={styles.listItem}>
-              <Text style={styles.listItemText}>{temoin}</Text>
-              <TouchableOpacity onPress={() => removeTemoin(index)}>
-                <X size={16} color="#dc2626" />
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
 
-        <View style={styles.listSection}>
-          <Text style={styles.sectionLabel}>Personnes impliquées</Text>
-          <View style={styles.addItemRow}>
-            <Input
-              value={newPersonne}
-              onChangeText={setNewPersonne}
-              placeholder="Nom de la personne"
-              containerStyle={styles.addItemInput}
-            />
-            <Button
-              title="Ajouter"
-              onPress={addPersonne}
-              variant="outline"
-              size="small"
-              disabled={!newPersonne.trim()}
-            />
-          </View>
-          
-          {(formData.personnesImpliquees || []).map((personne, index) => (
-            <View key={index} style={styles.listItem}>
-              <Text style={styles.listItemText}>{personne}</Text>
-              <TouchableOpacity onPress={() => removePersonne(index)}>
-                <X size={16} color="#dc2626" />
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
 
         <Input
           label="Agent rapporteur"
@@ -592,23 +448,7 @@ const styles = StyleSheet.create({
   locationInput: {
     flex: 1,
   },
-  geoSection: {
-    marginBottom: 20,
-    padding: 16,
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  geoText: {
-    fontSize: 14,
-    color: '#475569',
-    marginBottom: 12,
-    fontFamily: 'monospace',
-  },
-  geoButton: {
-    alignSelf: 'flex-start',
-  },
+
   photosSection: {
     marginBottom: 20,
   },
@@ -658,33 +498,7 @@ const styles = StyleSheet.create({
   addPhotoTextDisabled: {
     color: '#9ca3af',
   },
-  listSection: {
-    marginBottom: 20,
-  },
-  addItemRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 10,
-    marginBottom: 10,
-  },
-  addItemInput: {
-    flex: 1,
-  },
-  listItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 6,
-    marginBottom: 6,
-  },
-  listItemText: {
-    fontSize: 14,
-    color: '#374151',
-    flex: 1,
-  },
+
   formActions: {
     flexDirection: 'row',
     gap: 15,

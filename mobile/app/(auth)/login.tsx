@@ -71,10 +71,6 @@ export default function LoginScreen() {
     }
   };
 
-  const handleForgotPassword = () => {
-    router.push('/(auth)/reset-password');
-  };
-
   const handleGoBack = () => {
     router.back();
   };
@@ -94,13 +90,6 @@ export default function LoginScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          <Button
-            title="Retour"
-            onPress={handleGoBack}
-            variant="outline"
-            style={styles.backButton}
-          />
-
           <View style={styles.logoSection}>
             <Text style={styles.title}>Connexion Agent</Text>
             <Text style={styles.subtitle}>SMMC - Port de Toamasina</Text>
@@ -154,14 +143,14 @@ export default function LoginScreen() {
               disabled={isLoading}
               style={styles.loginButton}
             />
-
-            <Button
-              title="Mot de passe oublié ?"
-              onPress={handleForgotPassword}
-              variant="outline"
-              style={styles.forgotButton}
-            />
           </Card>
+
+          <Button
+            title="Retour"
+            onPress={handleGoBack}
+            variant="outline"
+            style={styles.backButton}
+          />
 
           <Text style={styles.helpText}>
             En cas de problème, contactez l'administrateur système
@@ -192,11 +181,11 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   backButton: {
-    position: 'absolute',
-    top: 60,
-    left: 40,
+    marginTop: 30,
+    marginBottom: 10,
     paddingHorizontal: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    alignSelf: 'center',
   },
   logoSection: {
     alignItems: 'center',
@@ -253,10 +242,6 @@ const styles = StyleSheet.create({
   loginButton: {
     marginTop: 20,
     marginBottom: 20,
-  },
-  forgotButton: {
-    backgroundColor: 'transparent',
-    borderColor: '#64748b',
   },
   helpText: {
     fontSize: 14,

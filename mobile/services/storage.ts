@@ -107,13 +107,25 @@ class StorageService {
       const fileName = `incident_${timestamp}.${extension}`;
       const destinationUri = `${imagesDir}${fileName}`;
 
+      // Vérifier que le fichier source existe
+      const sourceInfo = await FileSystem.getInfoAsync(sourceUri);
+      if (!sourceInfo.exists) {
+        throw new Error(`Fichier source non trouvé: ${sourceUri}`);
+      }
+
       // Copier l'image vers le répertoire permanent
       await FileSystem.copyAsync({
         from: sourceUri,
         to: destinationUri,
       });
 
+      // Vérifier que la copie a réussi
+      const destInfo = await FileSystem.getInfoAsync(destinationUri);
+      if (!destInfo.exists) {
+        throw new Error(`Échec de la copie vers: ${destinationUri}`);
+      }
 
+      console.log(`Image sauvegardée: ${destinationUri}`);
       return destinationUri;
     } catch (error) {
       console.error('Erreur lors de la sauvegarde de l\'image:', error);
@@ -169,6 +181,29 @@ class StorageService {
     } catch (error) {
       console.error('Erreur test accès image:', error);
       return false;
+    }
+  }
+
+  // Nettoyer les fichiers temporaires
+  async cleanupTempFiles(): Promise<void> {
+    try {
+      const cacheDir = FileSystem.cacheDirectory;
+      if (cacheDir) {
+        const files = await FileSystem.readDirectoryAsync(cacheDir);
+        for (const file of files) {
+          if (file.includes('ImageManipulator') || file.includes('ImagePicker')) {
+            const filePath = `${cacheDir}${file}`;
+            try {
+              await FileSystem.deleteAsync(filePath);
+              console.log(`Fichier temporaire supprimé: ${file}`);
+            } catch (error) {
+              console.warn(`Impossible de supprimer le fichier temporaire: ${file}`);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors du nettoyage des fichiers temporaires:', error);
     }
   }
 }

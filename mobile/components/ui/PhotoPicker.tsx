@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,11 @@ export default function PhotoPicker({
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingIndex, setProcessingIndex] = useState<number | null>(null);
 
+  // Nettoyer les fichiers temporaires au montage du composant
+  useEffect(() => {
+    storageService.cleanupTempFiles();
+  }, []);
+
   const selectPhotoSource = () => {
     if (photos.length >= maxPhotos) {
       Alert.alert('Limite atteinte', `Maximum ${maxPhotos} photos`);
@@ -53,7 +58,11 @@ export default function PhotoPicker({
       if (status !== 'granted') {
         Alert.alert(
           'Permission refusée',
-          'L\'accès à l\'appareil photo est nécessaire.'
+          'L\'accès à l\'appareil photo est nécessaire pour prendre des photos.',
+          [
+            { text: 'OK' },
+            { text: 'Paramètres', onPress: () => ImagePicker.requestCameraPermissionsAsync() }
+          ]
         );
         return;
       }
@@ -81,7 +90,11 @@ export default function PhotoPicker({
       if (status !== 'granted') {
         Alert.alert(
           'Permission refusée',
-          'L\'accès à la galerie est nécessaire.'
+          'L\'accès à la galerie est nécessaire pour sélectionner des photos.',
+          [
+            { text: 'OK' },
+            { text: 'Paramètres', onPress: () => ImagePicker.requestMediaLibraryPermissionsAsync() }
+          ]
         );
         return;
       }
@@ -115,6 +128,7 @@ export default function PhotoPicker({
       });
 
       if (!result.success) {
+        console.error('Erreur traitement image:', result.errors);
         Alert.alert(
           'Erreur de traitement',
           result.errors?.join('\n') || 'Impossible de traiter l\'image'
@@ -131,11 +145,14 @@ export default function PhotoPicker({
         // Vérifier que le fichier existe
         const fileExists = await storageService.testImageAccess(permanentUri);
         if (fileExists) {
+          console.log('Photo sauvegardée avec succès:', permanentUri);
           onPhotosChange([...photos, permanentUri]);
         } else {
+          console.error('Photo sauvegardée mais inaccessible:', permanentUri);
           Alert.alert('Erreur', 'Photo sauvegardée mais inaccessible');
         }
       } else {
+        console.error('Impossible de sauvegarder la photo');
         Alert.alert('Erreur', 'Impossible de sauvegarder la photo');
       }
     } catch (error) {

@@ -98,8 +98,10 @@ class ImageService {
       }
 
       // Pour obtenir les dimensions, on utilise ImageManipulator
-      const result = await ImageManipulator.manipulateAsync(uri, [], {});
-      
+      const result = await ImageManipulator.manipulateAsync(uri, [], {
+        format: ImageManipulator.SaveFormat.JPEG,
+      });
+
       return {
         width: result.width || 0,
         height: result.height || 0,

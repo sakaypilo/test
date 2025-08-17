@@ -60,13 +60,9 @@ export interface Incident {
   emplacement?: string; // pas dans le modèle Laravel actuel
   agent: string; // idUtilisateur dans Laravel
   photos: string[]; // photo1-photo6 dans Laravel
-  temoins?: string[]; // pas dans le modèle Laravel actuel
   mesuresPrises?: string; // pas dans le modèle Laravel actuel
   statut: 'en_attente' | 'valide' | 'rejete'; // statut dans Laravel
   actif?: boolean; // Champ pour savoir si l'incident est supprimé ou non
-  latitude?: number; // pas dans le modèle Laravel actuel
-  longitude?: number; // pas dans le modèle Laravel actuel
-  personnesImpliquees?: string[]; // pas dans le modèle Laravel actuel
   cameraId?: string; // idCamera dans Laravel
   camera?: { // informations de la caméra pour l'affichage
     numeroSerie: string;
