@@ -15,6 +15,9 @@ class PersonneController extends Controller
     {
         $query = Personne::with(['interpellations.utilisateur']);
 
+        // Filtrer les personnes actives (non supprimées) par défaut
+        $query->where('actif', true);
+
         // Filtres
         if ($request->has('statut')) {
             $query->where('statut', $request->statut);

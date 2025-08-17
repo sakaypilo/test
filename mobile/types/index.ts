@@ -13,6 +13,8 @@ export interface User {
 
 export interface Camera {
   id: string; // idCamera dans Laravel
+  idCamera?: number; // ID original de Laravel
+  actif?: boolean; // Champ pour savoir si la caméra est supprimée ou non
   numero: string; // numeroSerie dans Laravel
   zone: string;
   emplacement: string;

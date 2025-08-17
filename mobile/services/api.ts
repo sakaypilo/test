@@ -296,6 +296,8 @@ class ApiService {
         .filter((camera) => camera && camera.idCamera) // Filtrer les caméras invalides
         .map((camera) => ({
           id: (camera.idCamera || Date.now()).toString(),
+          idCamera: camera.idCamera, // Garder l'ID original
+          actif: camera.actif !== false, // Ajouter le champ actif pour le filtrage
           numero: camera.numeroSerie || 'N/A',
           zone: camera.zone || 'Zone non spécifiée',
           emplacement: camera.emplacement || 'Emplacement non spécifié',
@@ -388,11 +390,7 @@ class ApiService {
     });
   }
 
-  async deleteCamera(id: string): Promise<ApiResponse<null>> {
-    return this.makeRequest(`/cameras/${id}`, {
-      method: 'DELETE',
-    });
-  }
+  // Méthode de suppression déplacée vers la section des actions simples
 
   // Incidents - Utilise les endpoints Laravel
   async getIncidents(): Promise<ApiResponse<Incident[]>> {

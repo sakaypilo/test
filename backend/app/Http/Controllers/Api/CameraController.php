@@ -13,6 +13,9 @@ class CameraController extends Controller
     {
         $query = Camera::with('technicien');
 
+        // Filtrer les caméras actives (non supprimées) par défaut
+        $query->where('actif', true);
+
         // Filtres
         if ($request->has('statut')) {
             $query->where('statut', $request->statut);

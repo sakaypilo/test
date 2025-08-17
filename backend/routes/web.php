@@ -4,10 +4,23 @@ use Illuminate\Support\Facades\Route;
 use App\Models\Incident;
 use App\Models\Camera;
 use App\Models\Personne;
+use App\Http\Controllers\Web\TrashController;
+use App\Http\Controllers\Web\AuthController;
 
+// Redirection de la racine vers la page de connexion
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
+
+// Routes d'authentification
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Page de test des comptes
+Route::get('/test-accounts', function () {
+    return view('test-accounts');
+})->name('test.accounts');
 
 // Route de test pour vérifier les modèles
 Route::get('/test-models', function () {
@@ -113,4 +126,19 @@ Route::get('/test-agent-token', function () {
             'message' => 'Erreur: ' . $e->getMessage()
         ]);
     }
+});
+
+// Routes d'administration protégées
+Route::prefix('admin')->name('admin.')->middleware('web.auth')->group(function () {
+    // Dashboard
+    Route::get('/', [AuthController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard', [AuthController::class, 'dashboard'])->name('dashboard.alt');
+
+    // Corbeille
+    Route::prefix('trash')->name('trash.')->group(function () {
+        Route::get('/', [TrashController::class, 'index'])->name('index');
+        Route::post('/restore', [TrashController::class, 'restore'])->name('restore');
+        Route::post('/force-delete', [TrashController::class, 'forceDelete'])->name('force-delete');
+        Route::post('/empty', [TrashController::class, 'empty'])->name('empty');
+    });
 });
