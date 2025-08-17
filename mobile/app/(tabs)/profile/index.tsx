@@ -20,12 +20,12 @@ import {
   Phone,
   Badge,
   Calendar,
-  Settings,
+  // Settings,
   LogOut,
   Shield,
-  Download,
+  // Download,
   Camera,
-  Trash2
+  // Trash2
 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -88,21 +88,22 @@ export default function ProfileScreen() {
     );
   };
 
-  const handleChangePassword = () => {
-    router.push('/(auth)/reset-password');
-  };
+  // Temporairement désactivé - Actions pas importantes pour l'instant
+  // const handleChangePassword = () => {
+  //   router.push('/(auth)/reset-password');
+  // };
 
-  const handleDownloadReports = () => {
-    Alert.alert(
-      'Téléchargement',
-      'Fonctionnalité de téléchargement des rapports en cours de développement.',
-      [{ text: 'OK' }]
-    );
-  };
+  // const handleDownloadReports = () => {
+  //   Alert.alert(
+  //     'Téléchargement',
+  //     'Fonctionnalité de téléchargement des rapports en cours de développement.',
+  //     [{ text: 'OK' }]
+  //   );
+  // };
 
-  const handleTrash = () => {
-    router.push('/simple-trash');
-  };
+  // const handleTrash = () => {
+  //   router.push('/simple-trash');
+  // };
 
   if (!user) {
     return (
@@ -184,16 +185,17 @@ export default function ProfileScreen() {
           )}
         </Card>
 
-        <Card style={styles.actionsCard}>
+        {/* Temporairement désactivé - Actions pas importantes pour l'instant */}
+        {/* <Card style={styles.actionsCard}>
           <Text style={styles.sectionTitle}>Actions</Text>
-          
+
           <TouchableOpacity style={styles.actionRow} onPress={handleChangePassword}>
             <View style={styles.actionIcon}>
               <Settings size={20} color="#64748b" />
             </View>
             <Text style={styles.actionText}>Changer le mot de passe</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.actionRow} onPress={handleDownloadReports}>
             <View style={styles.actionIcon}>
               <Download size={20} color="#64748b" />
@@ -209,7 +211,7 @@ export default function ProfileScreen() {
               <Text style={styles.actionText}>Accéder à la corbeille</Text>
             </TouchableOpacity>
           )}
-        </Card>
+        </Card> */}
 
         <Card style={styles.dangerCard}>
           <Text style={styles.dangerTitle}>Zone de Danger</Text>
@@ -336,27 +338,28 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     fontWeight: '500',
   },
-  actionsCard: {
-    marginBottom: 20,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  actionIcon: {
-    width: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  actionText: {
-    fontSize: isTablet ? 16 : 14,
-    color: '#374151',
-    marginLeft: 12,
-    fontWeight: '500',
-  },
+  // Temporairement désactivé - Styles pour les actions
+  // actionsCard: {
+  //   marginBottom: 20,
+  // },
+  // actionRow: {
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  //   paddingVertical: 16,
+  //   borderBottomWidth: 1,
+  //   borderBottomColor: '#f1f5f9',
+  // },
+  // actionIcon: {
+  //   width: 40,
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  // },
+  // actionText: {
+  //   fontSize: isTablet ? 16 : 14,
+  //   color: '#374151',
+  //   marginLeft: 12,
+  //   fontWeight: '500',
+  // },
   dangerCard: {
     marginBottom: 30,
     borderWidth: 1,
