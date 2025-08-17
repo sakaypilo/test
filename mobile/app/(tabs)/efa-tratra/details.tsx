@@ -211,16 +211,6 @@ export default function PersonneDetailsScreen() {
               variant="primary"
               style={styles.actionButton}
             />
-            
-            <Button
-              title="Générer rapport"
-              onPress={() => {
-                // Navigate to generate report
-                Alert.alert('Info', 'Fonctionnalité en cours de développement');
-              }}
-              variant="outline"
-              style={styles.actionButton}
-            />
           </View>
         </Card>
       </ScrollView>
