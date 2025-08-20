@@ -232,4 +232,60 @@ class RapportController extends Controller
             'data' => $stats
         ]);
     }
+
+    /**
+     * Exporter tous les incidents entre deux dates au format CSV
+     */
+    public function exportIncidentsByDateRange(Request $request)
+    {
+        $request->validate([
+            'from' => 'required|date',
+            'to' => 'required|date|after_or_equal:from',
+            'zone' => 'sometimes|string|nullable'
+        ]);
+
+        $from = $request->query('from');
+        $to = $request->query('to');
+        $zone = $request->query('zone');
+
+        $incidentsQuery = Incident::with(['camera', 'utilisateur'])
+            ->where('actif', true)
+            ->whereBetween('dateHeure', [$from, $to]);
+        if (!empty($zone)) {
+            $incidentsQuery->where('zone', $zone);
+        }
+        $incidents = $incidentsQuery->orderBy('dateHeure', 'asc')->get();
+
+        $columns = [
+            'ID Incident', 'Date/Heure', 'Type', 'Zone', 'Description', 'Caméra', 'Emplacement', 'Agent', 'Statut'
+        ];
+
+        $callback = function () use ($incidents, $columns) {
+            $file = fopen('php://output', 'w');
+            // BOM UTF-8 pour compatibilité Excel
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($file, $columns, ';');
+            foreach ($incidents as $i) {
+                fputcsv($file, [
+                    $i->idIncident,
+                    optional($i->dateHeure)->format('Y-m-d H:i:s'),
+                    $i->typeIncident,
+                    $i->zone,
+                    $i->description,
+                    optional($i->camera)->numeroSerie,
+                    optional($i->camera)->emplacement,
+                    optional($i->utilisateur)->prenom.' '.optional($i->utilisateur)->nom,
+                    $i->statut,
+                ], ';');
+            }
+            fclose($file);
+        };
+
+        $suffix = $zone ? ('_zone_'.str_replace(' ', '_', $zone)) : '';
+        $filename = 'incidents_'.$from.'_au_'.$to.$suffix.'.csv';
+        return response()->streamDownload($callback, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'no-store, no-cache',
+        ]);
+    }
 }

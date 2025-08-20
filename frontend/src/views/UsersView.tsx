@@ -19,8 +19,9 @@ const UsersView: React.FC = () => {
   const [editingUser, setEditingUser] = useState<any>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [changePwdUser, setChangePwdUser] = useState<any>(null)
+  const [pwdForm, setPwdForm] = useState({ current_password: '', new_password: '', new_password_confirmation: '' })
 
-  // Utiliser les API réelles au lieu des données de démonstration
   const { 
     data: users, 
     loading: usersLoading, 
@@ -38,7 +39,6 @@ const UsersView: React.FC = () => {
     motDePasse: ''
   })
 
-  // Charger les données au montage du composant
   useEffect(() => {
     fetchUsers()
   }, [])
@@ -71,15 +71,12 @@ const UsersView: React.FC = () => {
       userData.append('role', userForm.role)
       userData.append('email', userForm.email)
       userData.append('telephone', userForm.telephone)
-      userData.append('motDePasse', userForm.motDePasse) // motDePasse only on creation
+      userData.append('motDePasse', userForm.motDePasse)
 
       const response = await usersAPI.create(userData)
       
       if (response.success) {
-        // Recharger la liste des utilisateurs
         fetchUsers()
-        
-        // Réinitialiser le formulaire
         setUserForm({
           matricule: '',
           nom: '',
@@ -125,7 +122,6 @@ const UsersView: React.FC = () => {
     setSubmitError(null)
 
     try {
-      // Déclare userData avec let ou const avant de l'utiliser
       const userData: any = {
         matricule: userForm.matricule,
         nom: userForm.nom,
@@ -139,7 +135,6 @@ const UsersView: React.FC = () => {
       const response = await usersAPI.update(editingUser.idUtilisateur, userData)
 
       if (response.success) {
-        // Recharger la liste des utilisateurs
         fetchUsers()
 
         setEditingUser(null)
@@ -164,21 +159,53 @@ const UsersView: React.FC = () => {
     }
   }
 
-  const handleResetPassword = async (userId: number) => {
-    const confirmReset = window.confirm('Êtes-vous sûr de vouloir réinitialiser le mot de passe de cet utilisateur ?')
-    if (!confirmReset) return
+  const openChangePassword = (user: any) => {
+    setChangePwdUser(user)
+    setPwdForm({ current_password: '', new_password: '', new_password_confirmation: '' })
+  }
 
+  const submitChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!changePwdUser) return
+
+    setIsSubmitting(true)
     try {
-      const response = await usersAPI.resetPassword(userId)
-      if (response.success) {
-        alert(`Mot de passe réinitialisé avec succès!\nNouveau mot de passe temporaire: ${response.data?.temporary_password || 'Contactez l\'administrateur'}`)
-      } else {
-        alert(`Erreur: ${response.message || 'Erreur lors de la réinitialisation'}`)
+      const payload: any = {
+        new_password: pwdForm.new_password,
+        new_password_confirmation: pwdForm.new_password_confirmation
       }
-    } catch (error) {
-      alert('Erreur de connexion lors de la réinitialisation du mot de passe')
+      if (pwdForm.current_password) payload.current_password = pwdForm.current_password
+
+      const res = await usersAPI.changePassword(changePwdUser.idUtilisateur, payload)
+      if (res.success) {
+        alert('Mot de passe modifié avec succès')
+        setChangePwdUser(null)
+        setPwdForm({ current_password: '', new_password: '', new_password_confirmation: '' })
+      } else {
+        alert(res.message || 'Erreur lors de la modification du mot de passe')
+      }
+    } catch (err) {
+      alert('Erreur de connexion lors du changement de mot de passe')
+    } finally {
+      setIsSubmitting(false)
     }
   }
+
+  // const handleResetPassword = async (userId: number) => {
+  //   const confirmReset = window.confirm('Êtes-vous sûr de vouloir réinitialiser le mot de passe de cet utilisateur ?')
+  //   if (!confirmReset) return
+
+  //   try {
+  //     const response = await usersAPI.resetPassword(userId)
+  //     if (response.success) {
+  //       alert(`Mot de passe réinitialisé avec succès!`)
+  //     } else {
+  //       alert(`Erreur: ${response.message || 'Erreur lors de la réinitialisation'}`)
+  //     }
+  //   } catch (error) {
+  //     alert('Erreur de connexion lors de la réinitialisation du mot de passe')
+  //   }
+  // }
 
   const handleToggleStatus = async (userId: number) => {
     const user = users.find(u => u.idUtilisateur === userId)
@@ -189,7 +216,6 @@ const UsersView: React.FC = () => {
     try {
       const response = await usersAPI.toggleStatus(userId)
       if (response.success) {
-        // Recharger la liste des utilisateurs
         fetchUsers()
         alert(`Utilisateur ${action} avec succès`)
       } else {
@@ -323,11 +349,14 @@ const UsersView: React.FC = () => {
                         </button>
                         
                         <button
-                          onClick={() => handleResetPassword(user.idUtilisateur)}
-                          className="text-yellow-600 hover:text-yellow-900"
+                          onClick={() => openChangePassword(user)}
+                          className="text-purple-600 hover:text-purple-900"
+                          title="Changer mot de passe"
                         >
                           <Key className="w-4 h-4" />
                         </button>
+                        
+                        
                         
                         <button
                           onClick={() => handleToggleStatus(user.idUtilisateur)}
@@ -439,7 +468,7 @@ const UsersView: React.FC = () => {
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-secondary-700 mb-2">
+                      <label className="block textsm font-medium text-secondary-700 mb-2">
                         Email *
                       </label>
                       <input
@@ -504,6 +533,58 @@ const UsersView: React.FC = () => {
                       >
                         Annuler
                       </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Change Password Modal */}
+          {changePwdUser && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setChangePwdUser(null)}>
+              <div className="bg-white rounded-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-secondary-900">Changer le mot de passe</h3>
+                    <button onClick={() => setChangePwdUser(null)} className="text-secondary-400 hover:text-secondary-600">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <form onSubmit={submitChangePassword} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-secondary-700 mb-2">Mot de passe actuel (si applicable)</label>
+                      <input
+                        type="password"
+                        value={pwdForm.current_password}
+                        onChange={(e) => setPwdForm({ ...pwdForm, current_password: e.target.value })}
+                        className="input-field"
+                        placeholder="Votre mot de passe actuel"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-secondary-700 mb-2">Nouveau mot de passe</label>
+                      <input
+                        type="password"
+                        value={pwdForm.new_password}
+                        onChange={(e) => setPwdForm({ ...pwdForm, new_password: e.target.value })}
+                        className="input-field"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-secondary-700 mb-2">Confirmer le nouveau mot de passe</label>
+                      <input
+                        type="password"
+                        value={pwdForm.new_password_confirmation}
+                        onChange={(e) => setPwdForm({ ...pwdForm, new_password_confirmation: e.target.value })}
+                        className="input-field"
+                        required
+                      />
+                    </div>
+                    <div className="flex justify-end gap-3">
+                      <button type="button" className="btn-secondary" onClick={() => setChangePwdUser(null)}>Annuler</button>
+                      <button type="submit" className="btn-primary" disabled={isSubmitting}>Valider</button>
                     </div>
                   </form>
                 </div>

@@ -15,11 +15,14 @@ const ReportsView: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+  const [zone, setZone] = useState('')
+  const [exporting, setExporting] = useState(false)
 
   const { incidents, fetchIncidents } = useIncidentsStore()
   const { user } = useAuthStore()
 
-  // Utiliser les API réelles pour les rapports
   const { 
     data: generatedReports, 
     loading: reportsLoading, 
@@ -27,16 +30,50 @@ const ReportsView: React.FC = () => {
     execute: fetchReports 
   } = useApi(rapportsAPI.getAll)
 
-  // Charger les données au montage du composant
   useEffect(() => {
     fetchIncidents()
     fetchReports()
   }, [])
 
-  const validatedIncidents = incidents.filter(incident => incident.statut === 'valide')
+  const validatedIncidents = incidents
+    .filter(incident => incident.statut === 'valide')
+    .filter(incident => !zone || incident.zone === zone)
 
   const hasReport = (incidentId: number) => {
     return generatedReports?.some((report: any) => report.idIncident === incidentId) || false
+  }
+
+  const canRunRange = fromDate && toDate && new Date(fromDate) <= new Date(toDate)
+
+  const applyRangeFilter = async () => {
+    if (!canRunRange) return
+    setError(null)
+    await fetchIncidents({ from: fromDate, to: toDate, zone: zone || undefined })
+  }
+
+  const downloadCSV = async () => {
+    if (!canRunRange) {
+      setError("Veuillez sélectionner une plage de dates valide.")
+      return
+    }
+    setError(null)
+    setExporting(true)
+    try {
+      const blob = await rapportsAPI.exportIncidentsByDateRange(fromDate, toDate + '', zone || undefined as any)
+      // adapter au client existant: changeons la signature pour accepter zone
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `incidents_${fromDate}_au_${toDate}${zone ? `_zone_${zone.replace(/\s/g,'_')}` : ''}.csv`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    } catch (e) {
+      setError('Erreur lors de l\'export CSV')
+    } finally {
+      setExporting(false)
+    }
   }
 
   const generateReport = (incident: any) => {
@@ -65,10 +102,8 @@ const ReportsView: React.FC = () => {
       if (response.success) {
         setSuccess('Rapport généré avec succès !')
         
-        // Recharger la liste des rapports
         await fetchReports()
         
-        // Fermer le modal après un délai
         setTimeout(() => {
           setShowGenerateForm(false)
           setSelectedIncident(null)
@@ -90,7 +125,6 @@ const ReportsView: React.FC = () => {
     try {
       const report = generatedReports?.find((r: any) => r.idIncident === incidentId)
       if (report) {
-        // Télécharger le fichier via l'API
         const token = localStorage.getItem('token')
         const response = await fetch(`http://localhost:8000/api/rapports/${report.idRapport}/download`, {
           method: 'GET',
@@ -151,7 +185,39 @@ const ReportsView: React.FC = () => {
             </div>
           </div>
 
-          {/* Messages d'erreur/succès globaux */}
+          {/* Filtre plage de dates + zone + export */}
+          <div className="card mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-secondary-700 mb-2">Du</label>
+                <input type="date" className="input-field" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-secondary-700 mb-2">Au</label>
+                <input type="date" className="input-field" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-secondary-700 mb-2">Zone</label>
+                <select className="input-field" value={zone} onChange={(e) => setZone(e.target.value)}>
+                  <option value="">Toutes</option>
+                  <option value="Zone Portuaire Nord">Zone Portuaire Nord</option>
+                  <option value="Zone Portuaire Sud">Zone Portuaire Sud</option>
+                  <option value="Zone Administrative">Zone Administrative</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button onClick={applyRangeFilter} disabled={!canRunRange} className="btn-secondary w-full disabled:opacity-50">
+                  Afficher
+                </button>
+              </div>
+              <div className="flex items-end">
+                <button onClick={downloadCSV} disabled={!canRunRange || exporting} className="btn-primary w-full disabled:opacity-50">
+                  {exporting ? 'Export...' : 'Exporter CSV'}
+                </button>
+              </div>
+            </div>
+          </div>
+
           {reportsError && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
               <div className="flex items-center">
@@ -324,7 +390,6 @@ const ReportsView: React.FC = () => {
                     )}
                   </div>
                   
-                  {/* Messages d'erreur/succès */}
                   {error && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
                       <div className="flex items-center">
@@ -343,7 +408,6 @@ const ReportsView: React.FC = () => {
                     </div>
                   )}
                   
-                  {/* Report Preview */}
                   <div className="space-y-6">
                     <div className="bg-secondary-50 p-4 rounded-lg">
                       <h4 className="font-medium text-secondary-900 mb-3">Aperçu du rapport</h4>

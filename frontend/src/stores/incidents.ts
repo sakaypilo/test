@@ -32,6 +32,10 @@ interface IncidentsState {
   validateIncident: (id: number) => void
   rejectIncident: (id: number) => void
   createIncident: (formData: FormData) => Promise<{ success: boolean; error?: string }>
+  updateIncident: (id: number, data: Partial<Incident>) => Promise<boolean>
+  deleteIncident: (id: number, reason?: string) => Promise<boolean>
+  bulkUpdateIncidents: (payload: { ids: number[]; typeIncident?: string; zone?: string; dateHeure?: string; description?: string }) => Promise<boolean>
+  bulkDeleteIncidents: (payload: { ids: number[]; reason?: string }) => Promise<boolean>
 }
 
 export const useIncidentsStore = create<IncidentsState>((set, get) => ({
@@ -107,6 +111,58 @@ export const useIncidentsStore = create<IncidentsState>((set, get) => ({
       }
     } catch (error) {
       console.error('Erreur lors du rejet:', error)
+    }
+  },
+
+  updateIncident: async (id, data) => {
+    try {
+      const response = await incidentsAPI.update(id, data)
+      if (response.success) {
+        await get().fetchIncidents()
+        return true
+      }
+      return false
+    } catch (e) {
+      return false
+    }
+  },
+
+  deleteIncident: async (id, reason) => {
+    try {
+      const response = await incidentsAPI.delete(id, reason)
+      if (response.success) {
+        await get().fetchIncidents()
+        return true
+      }
+      return false
+    } catch (e) {
+      return false
+    }
+  },
+
+  bulkUpdateIncidents: async (payload) => {
+    try {
+      const response = await incidentsAPI.bulkUpdate(payload)
+      if (response.success) {
+        await get().fetchIncidents()
+        return true
+      }
+      return false
+    } catch (e) {
+      return false
+    }
+  },
+
+  bulkDeleteIncidents: async (payload) => {
+    try {
+      const response = await incidentsAPI.bulkDelete(payload)
+      if (response.success) {
+        await get().fetchIncidents()
+        return true
+      }
+      return false
+    } catch (e) {
+      return false
     }
   }
 }))

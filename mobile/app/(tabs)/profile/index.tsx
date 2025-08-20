@@ -167,7 +167,7 @@ export default function ProfileScreen() {
           <InfoRow
             icon={<Phone size={20} color="#00A550" />}
             label="Téléphone"
-            value={user.telephone}
+            value={user.telephone || 'Non renseigné'}
           />
 
           <InfoRow

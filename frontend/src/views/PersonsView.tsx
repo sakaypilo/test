@@ -11,7 +11,8 @@ import {
   User,
   Eye,
   Plus,
-  X
+  X,
+  Trash2
 } from 'lucide-react'
 
 const PersonsView: React.FC = () => {
@@ -56,8 +57,6 @@ const PersonsView: React.FC = () => {
   )
 
   const getLastInterpellation = () => {
-    // This function relies on interpellations which are no longer fetched.
-    // It will return 'Aucune' or a placeholder if interpellations are not available.
     return 'Aucune'
   }
 
@@ -66,25 +65,21 @@ const PersonsView: React.FC = () => {
   }
 
   const deletePerson = async (id: number) => {
-  const confirmDelete = window.confirm("Confirmer la suppression de cette personne ?");
-  if (!confirmDelete) return;
-
-  try {
-    const response = await personnesAPI.delete(id);
-    if (response.data.success) {
-      fetchPersons(); // Recharge la liste après suppression
-    } else {
-      alert(response.data.message || "Échec de la suppression.");
+    const confirmDelete = window.confirm("Confirmer la suppression de cette personne ?")
+    if (!confirmDelete) return
+    try {
+      const response = await personnesAPI.delete(id)
+      if (response.success) {
+        fetchPersons()
+      } else {
+        alert(response.message || "Échec de la suppression.")
+      }
+    } catch (error) {
+      alert("Une erreur est survenue.")
     }
-  } catch (error) {
-    console.error("Erreur lors de la suppression logique:", error);
-    alert("Une erreur est survenue.");
   }
-}
-
 
   const addInterpellation = (person: any) => {
-    // Pré-remplir les données de la personne existante
     setNewPerson({ ...person })
     setShowAddForm(true)
   }
@@ -104,11 +99,9 @@ const PersonsView: React.FC = () => {
     setIsSubmitting(true)
     
     try {
-      // Vérifier si la personne existe déjà
       let existingPerson = persons?.find(p => p.CIN === newPerson.CIN)
       
       if (!existingPerson) {
-        // Créer une nouvelle personne via API
         const personData = new FormData()
         personData.append('nom', newPerson.nom)
         personData.append('prenom', newPerson.prenom)
@@ -122,15 +115,12 @@ const PersonsView: React.FC = () => {
         const personResponse = await personnesAPI.create(personData)
         if (personResponse.success) {
           existingPerson = personResponse.data
-          // Recharger la liste des personnes
           fetchPersons()
         } else {
           throw new Error(personResponse.message || 'Erreur lors de la création de la personne')
         }
       }
       
-      
-      // Réinitialiser le formulaire
       setNewPerson({
         nom: '',
         prenom: '',
@@ -319,6 +309,14 @@ const PersonsView: React.FC = () => {
                           className="text-green-600 hover:text-green-900"
                         >
                           <Plus className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          onClick={() => deletePerson(person.idPersonne)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </td>
                     </tr>

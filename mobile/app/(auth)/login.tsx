@@ -59,7 +59,7 @@ export default function LoginScreen() {
 
       if (response.success && response.data) {
         setUser(response.data.user);
-        setTokens(response.data.token, response.data.refreshToken);
+        setTokens(response.data.token ?? '', response.data.refreshToken ?? '');
         router.replace('/(tabs)/dashboard');
       } else {
         setError(response.message || 'Échec de la connexion');

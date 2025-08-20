@@ -5,20 +5,29 @@ import { useIncidentsStore } from '../stores/incidents'
 import { useAuthStore } from '../stores/auth'
 import Sidebar from '../components/layout/Sidebar'
 import Header from '../components/layout/Header'
+import DeleteConfirmModal from '../components/ui/DeleteConfirmModal'
 import { 
   Plus, 
   Filter, 
   Eye, 
   Check, 
-  X 
+  X,
+  Edit,
+  Trash2
 } from 'lucide-react'
 
 const IncidentsView: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [selectedIncident, setSelectedIncident] = useState<any>(null)
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false)
+  const [bulkEditData, setBulkEditData] = useState({ typeIncident: '', zone: '', dateHeure: '', description: '' })
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [deleteReason, setDeleteReason] = useState('')
 
-  const { incidents, isLoading, fetchIncidents, validateIncident, rejectIncident } = useIncidentsStore()
+  const { incidents, isLoading, fetchIncidents, validateIncident, rejectIncident, bulkUpdateIncidents, bulkDeleteIncidents } = useIncidentsStore()
   const { user } = useAuthStore()
 
   const [filters, setFilters] = useState({
@@ -55,6 +64,42 @@ const IncidentsView: React.FC = () => {
     fetchIncidents({ ...filters, [key]: value })
   }
 
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredIncidents.length) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(filteredIncidents.map(i => i.idIncident))
+    }
+  }
+
+  const toggleSelectOne = (id: number) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  const openBulkEdit = () => {
+    setBulkEditData({ typeIncident: '', zone: '', dateHeure: '', description: '' })
+    setIsBulkEditOpen(true)
+  }
+
+  const applyBulkEdit = async () => {
+    await bulkUpdateIncidents({ ids: selectedIds, ...Object.fromEntries(Object.entries(bulkEditData).filter(([_, v]) => v)) })
+    setIsBulkEditOpen(false)
+    setSelectedIds([])
+  }
+
+  const openBulkDelete = () => {
+    setIsDeleteModalOpen(true)
+  }
+
+  const confirmBulkDelete = async (reason?: string) => {
+    setIsBulkDeleting(true)
+    await bulkDeleteIncidents({ ids: selectedIds, reason: reason || deleteReason || undefined })
+    setIsBulkDeleting(false)
+    setSelectedIds([])
+    setDeleteReason('')
+    setIsDeleteModalOpen(false)
+  }
+
   const viewIncident = (incident: any) => {
     setSelectedIncident(incident)
   }
@@ -74,7 +119,26 @@ const IncidentsView: React.FC = () => {
               <p className="text-secondary-600 mt-1">Suivi et validation des incidents signalés</p>
             </div>
             
-            <div className="mt-4 sm:mt-0 flex space-x-3">
+            <div className="mt-4 sm:mt-0 flex flex-wrap gap-3 items-center">
+              {selectedIds.length > 0 && (
+                <>
+                  <button
+                    onClick={openBulkEdit}
+                    className="btn-secondary flex items-center space-x-2"
+                  >
+                    <Edit className="w-4 h-4" />
+                    <span>Modifier ({selectedIds.length})</span>
+                  </button>
+                  <button
+                    onClick={openBulkDelete}
+                    className="btn-secondary flex items-center space-x-2"
+                    disabled={isBulkDeleting}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>{isBulkDeleting ? 'Suppression...' : `Supprimer (${selectedIds.length})`}</span>
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className="btn-secondary flex items-center space-x-2"
@@ -162,6 +226,13 @@ const IncidentsView: React.FC = () => {
               <table className="min-w-full divide-y divide-secondary-200">
                 <thead className="bg-secondary-50">
                   <tr>
+                    <th className="px-2 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.length === filteredIncidents.length && filteredIncidents.length > 0}
+                        onChange={toggleSelectAll}
+                      />
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
                       Incident
                     </th>
@@ -185,6 +256,13 @@ const IncidentsView: React.FC = () => {
                       key={incident.idIncident}
                       className="hover:bg-secondary-50"
                     >
+                      <td className="px-2 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(incident.idIncident)}
+                          onChange={() => toggleSelectOne(incident.idIncident)}
+                        />
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-secondary-900">
@@ -257,6 +335,82 @@ const IncidentsView: React.FC = () => {
               </table>
             </div>
           </div>
+
+          {/* Bulk Edit Modal */}
+          {isBulkEditOpen && (
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+              onClick={() => setIsBulkEditOpen(false)}
+            >
+              <div 
+                className="bg-white rounded-xl max-w-lg w-full"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-6 border-b">
+                  <h3 className="text-lg font-semibold text-secondary-900">Modifier {selectedIds.length} incident(s)</h3>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-secondary-700 mb-2">Type (optionnel)</label>
+                    <select
+                      value={bulkEditData.typeIncident}
+                      onChange={(e) => setBulkEditData(v => ({ ...v, typeIncident: e.target.value }))}
+                      className="input-field"
+                    >
+                      <option value="">Ne pas changer</option>
+                      <option value="Intrusion">Intrusion</option>
+                      <option value="Vol suspect">Vol suspect</option>
+                      <option value="Vandalisme">Vandalisme</option>
+                      <option value="Autre">Autre</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-secondary-700 mb-2">Zone (optionnel)</label>
+                    <input
+                      type="text"
+                      value={bulkEditData.zone}
+                      onChange={(e) => setBulkEditData(v => ({ ...v, zone: e.target.value }))}
+                      className="input-field"
+                      placeholder="Ne pas changer si vide"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-secondary-700 mb-2">Date/Heure (optionnel)</label>
+                    <input
+                      type="datetime-local"
+                      value={bulkEditData.dateHeure}
+                      onChange={(e) => setBulkEditData(v => ({ ...v, dateHeure: e.target.value }))}
+                      className="input-field"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-secondary-700 mb-2">Description (optionnel)</label>
+                    <textarea
+                      value={bulkEditData.description}
+                      onChange={(e) => setBulkEditData(v => ({ ...v, description: e.target.value }))}
+                      className="input-field"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 p-6 border-t bg-secondary-50">
+                  <button className="btn-secondary" onClick={() => setIsBulkEditOpen(false)}>Annuler</button>
+                  <button className="btn-primary" onClick={applyBulkEdit}>Appliquer</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Delete Confirm Modal */}
+          <DeleteConfirmModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            onConfirm={confirmBulkDelete}
+            title={`Supprimer ${selectedIds.length} incident(s)`}
+            message="Ces incidents seront déplacés vers la corbeille. Vous pourrez les restaurer depuis la corbeille."
+            isPermanent={false}
+            isLoading={isBulkDeleting}
+          />
 
           {/* Incident Detail Modal */}
           {selectedIncident && (

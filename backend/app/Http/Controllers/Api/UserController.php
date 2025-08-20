@@ -200,6 +200,50 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     * Permet à un utilisateur de changer son mot de passe, ou à un admin de le faire pour un utilisateur.
+     */
+    public function changePassword(Request $request, $id)
+    {
+        $authUser = $request->user();
+        $targetUser = User::findOrFail($id);
+
+        // Autorisations: l'utilisateur lui-même ou admin
+        if ($authUser->idUtilisateur !== $targetUser->idUtilisateur && $authUser->role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous n\'avez pas les permissions pour changer ce mot de passe.'
+            ], 403);
+        }
+
+        $rules = [
+            'new_password' => 'required|string|min:6|confirmed', // attend new_password et new_password_confirmation
+        ];
+        // Si ce n'est pas un admin qui change le mot de passe d'autrui, exiger l'ancien
+        if ($authUser->idUtilisateur === $targetUser->idUtilisateur) {
+            $rules['current_password'] = 'required|string';
+        }
+        $validated = $request->validate($rules);
+
+        if (isset($validated['current_password'])) {
+            if (!\Illuminate\Support\Facades\Hash::check($validated['current_password'], $targetUser->motDePasse)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Mot de passe actuel incorrect.'
+                ], 422);
+            }
+        }
+
+        $targetUser->update([
+            'motDePasse' => $validated['new_password'], // hash via mutator
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Mot de passe modifié avec succès.'
+        ]);
+    }
+
     public function toggleStatus($id)
     {
         $user = request()->user();

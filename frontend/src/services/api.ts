@@ -70,7 +70,6 @@ export const authAPI = {
   login: (credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> =>
   api.post('/login', credentials).then(res => {
     const data = res.data
-    // Si le backend renvoie user et token à la racine, on les place dans data
     return {
       success: data.success,
       data: {
@@ -95,7 +94,7 @@ export const dashboardAPI = {
 }
 
 export const incidentsAPI = {
-  getAll: (params?: { statut?: string; type?: string; zone?: string; date?: string; page?: number }): Promise<ApiResponse> =>
+  getAll: (params?: { statut?: string; type?: string; zone?: string; date?: string; page?: number; from?: string; to?: string }): Promise<ApiResponse> =>
     api.get('/incidents', { params }).then(res => res.data),
   getById: (id: number): Promise<ApiResponse> =>
     api.get(`/incidents/${id}`).then(res => res.data),
@@ -105,6 +104,14 @@ export const incidentsAPI = {
     api.post(`/incidents/${id}/validate`, data).then(res => res.data),
   getStatistics: (): Promise<ApiResponse> =>
     api.get('/incidents-statistics').then(res => res.data),
+  update: (id: number, data: any): Promise<ApiResponse> =>
+    api.put(`/incidents/${id}`, data).then(res => res.data),
+  delete: (id: number, reason?: string): Promise<ApiResponse> =>
+    api.delete(`/incidents/${id}`, { data: reason ? { reason } : undefined }).then(res => res.data),
+  bulkUpdate: (payload: { ids: number[]; typeIncident?: string; zone?: string; dateHeure?: string; description?: string }): Promise<ApiResponse> =>
+    api.post('/incidents/bulk-update', payload).then(res => res.data),
+  bulkDelete: (payload: { ids: number[]; reason?: string }): Promise<ApiResponse> =>
+    api.post('/incidents/bulk-delete', payload).then(res => res.data),
 }
 
 export const camerasAPI = {
@@ -135,6 +142,8 @@ export const personnesAPI = {
     api.post(`/personnes/${id}/interpellations`, data).then(res => res.data),
   getStatistics: (): Promise<ApiResponse> =>
     api.get('/personnes-statistics').then(res => res.data),
+  delete: (id: number): Promise<ApiResponse> =>
+    api.delete(`/personnes/${id}`).then(res => res.data),
 }
 
 export const rapportsAPI = {
@@ -144,6 +153,8 @@ export const rapportsAPI = {
     api.post(`/rapports/incidents/${incidentId}`, data).then(res => res.data),
   downloadReport: (reportId: number): Promise<Blob> =>
     api.get(`/rapports/${reportId}/download`, { responseType: 'blob' }).then(res => res.data),
+  exportIncidentsByDateRange: (from: string, to: string): Promise<Blob> =>
+    api.get(`/rapports/incidents/export`, { params: { from, to }, responseType: 'blob' }).then(res => res.data),
 }
 
 export const usersAPI = {
@@ -153,7 +164,7 @@ export const usersAPI = {
     api.get(`/users/${id}`).then(res => res.data),
   create: (data: FormData): Promise<ApiResponse> =>
     api.post('/users', data, { headers: { 'Content-Type': 'multipart/form-data' } }).then(res => res.data),
-  update: (id: number, data: FormData): Promise<ApiResponse> =>
+  update: (id: number, data: any): Promise<ApiResponse> =>
     api.put(`/users/${id}`, data).then(res => res.data),
   resetPassword: (id: number): Promise<ApiResponse> =>
     api.post(`/users/${id}/reset-password`).then(res => res.data),
@@ -161,6 +172,8 @@ export const usersAPI = {
     api.post(`/users/${id}/toggle-status`).then(res => res.data),
   getStatistics: (): Promise<ApiResponse> =>
     api.get('/users-statistics').then(res => res.data),
+  changePassword: (id: number, payload: { current_password?: string; new_password: string; new_password_confirmation: string }): Promise<ApiResponse> =>
+    api.post(`/users/${id}/change-password`, payload).then(res => res.data),
 }
 
 // API pour la corbeille

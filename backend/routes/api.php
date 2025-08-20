@@ -36,6 +36,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('incidents', IncidentController::class);
     Route::post('/incidents/{id}/validate', [IncidentController::class, 'validate']);
     Route::get('/incidents-statistics', [IncidentController::class, 'statistics']);
+    Route::post('/incidents/bulk-update', [IncidentController::class, 'bulkUpdate']);
+    Route::post('/incidents/bulk-delete', [IncidentController::class, 'bulkDelete']);
     
     // Caméras
     Route::apiResource('cameras', CameraController::class);
@@ -53,10 +55,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/rapports/incidents/{id}', [RapportController::class, 'generateIncidentReport']);
     Route::get('/rapports/{id}/download', [RapportController::class, 'download'])->name('rapports.download');
     Route::get('/rapports-statistics', [RapportController::class, 'statistics']);
+    Route::get('/rapports/incidents/export', [RapportController::class, 'exportIncidentsByDateRange']);
     
     // Utilisateurs (Admin seulement)
     Route::apiResource('users', UserController::class);
     Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
+    Route::post('/users/{id}/change-password', [UserController::class, 'changePassword']);
     Route::post('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
     Route::get('/users-statistics', [UserController::class, 'statistics']);
 

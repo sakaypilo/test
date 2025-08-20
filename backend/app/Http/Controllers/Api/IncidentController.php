@@ -38,7 +38,12 @@ class IncidentController extends Controller
             $query->where('zone', $request->zone);
         }
 
-        if ($request->has('date')) {
+        if ($request->has('from') && $request->has('to')) {
+            $query->whereBetween('dateHeure', [
+                $request->query('from'),
+                $request->query('to')
+            ]);
+        } elseif ($request->has('date')) {
             $query->whereDate('dateHeure', $request->date);
         }
 
@@ -342,5 +347,83 @@ class IncidentController extends Controller
                 'message' => 'Erreur lors de la suppression de l\'incident.'
             ], 500);
         }
+    }
+
+    /**
+     * Mise à jour en masse d'incidents
+     */
+    public function bulkUpdate(Request $request)
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:incidents,idIncident',
+            'typeIncident' => 'sometimes|string|max:50',
+            'zone' => 'sometimes|string|max:100',
+            'dateHeure' => 'sometimes|date',
+            'description' => 'sometimes|string'
+        ]);
+
+        // Permissions: admin/responsable pour tous; agent seulement ses incidents
+        $query = Incident::whereIn('idIncident', $data['ids']);
+        if ($user->role === 'agent') {
+            $query->where('idUtilisateur', $user->idUtilisateur);
+        }
+
+        $fieldsToUpdate = collect($data)->only(['typeIncident', 'zone', 'dateHeure', 'description'])->toArray();
+        if (empty($fieldsToUpdate)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucun champ à mettre à jour fourni.'
+            ], 422);
+        }
+
+        $updated = 0;
+        foreach ($query->get() as $incident) {
+            $incident->update($fieldsToUpdate);
+            $updated++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$updated} incident(s) mis à jour avec succès.",
+            'updated' => $updated
+        ]);
+    }
+
+    /**
+     * Suppression en masse d'incidents (soft delete)
+     */
+    public function bulkDelete(Request $request)
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:incidents,idIncident',
+            'reason' => 'sometimes|string|nullable'
+        ]);
+
+        $query = Incident::whereIn('idIncident', $data['ids']);
+        if ($user->role === 'agent') {
+            $query->where('idUtilisateur', $user->idUtilisateur);
+        }
+
+        $reason = $data['reason'] ?? 'Suppression en masse';
+        $deleted = 0;
+        foreach ($query->get() as $incident) {
+            $incident->update([
+                'actif' => false,
+                'deleted_at' => now(),
+                'deleted_by' => $user->idUtilisateur,
+                'deletion_reason' => $reason,
+            ]);
+            $deleted++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$deleted} incident(s) supprimé(s) avec succès.",
+            'deleted' => $deleted
+        ]);
     }
 }

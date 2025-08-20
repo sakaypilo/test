@@ -13,7 +13,9 @@ import {
   MapPin,
   Navigation,
   Calendar,
-  X
+  X,
+  Trash2,
+  Filter
 } from 'lucide-react'
 
 const CamerasView: React.FC = () => {
@@ -22,6 +24,7 @@ const CamerasView: React.FC = () => {
   const [selectedCamera, setSelectedCamera] = useState<any>(null)
   const [showCameraDetails, setShowCameraDetails] = useState(false)
   const [editingCamera, setEditingCamera] = useState<any>(null)
+  const [zoneFilter, setZoneFilter] = useState('')
 
   const { cameras, getCamerasByStatus, fetchCameras, createCamera, isLoading, error } = useCamerasStore()
   const { user } = useAuthStore()
@@ -53,6 +56,20 @@ const CamerasView: React.FC = () => {
       dateInstallation: camera.dateInstallation.split('T')[0]
     })
     setShowAddForm(true)
+  }
+
+  const deleteCamera = async (cameraId: number) => {
+    if (!confirm('Confirmer la suppression de cette caméra ?')) return
+    try {
+      const res = await camerasAPI.delete(cameraId)
+      if (res.success) {
+        await fetchCameras({ zone: zoneFilter || undefined })
+      } else {
+        alert(res.message || 'Erreur lors de la suppression de la caméra')
+      }
+    } catch (e) {
+      alert('Erreur de connexion lors de la suppression')
+    }
   }
 
   const handleUpdateCamera = async (e: React.FormEvent) => {
@@ -87,7 +104,7 @@ const CamerasView: React.FC = () => {
         setEditingCamera(null)
         setSubmitError(null)
         
-        await fetchCameras()
+        await fetchCameras({ zone: zoneFilter || undefined })
       } else {
         setSubmitError(response.message || 'Erreur lors de la mise à jour de la caméra')
       }
@@ -99,14 +116,17 @@ const CamerasView: React.FC = () => {
     }
   }
 
-  // Charger les caméras au montage du composant
   useEffect(() => {
     fetchCameras()
   }, [])
 
-  const activeCameras = getCamerasByStatus('actif')
-  const faultyCameras = getCamerasByStatus('panne')
-  const offlineCameras = getCamerasByStatus('hors ligne')
+  const filteredCameras = useMemo(() => {
+    return cameras.filter(c => !zoneFilter || c.zone === zoneFilter)
+  }, [cameras, zoneFilter])
+
+  const activeCameras = filteredCameras.filter(c => c.statut === 'actif')
+  const faultyCameras = filteredCameras.filter(c => c.statut === 'panne')
+  const offlineCameras = filteredCameras.filter(c => c.statut === 'hors ligne')
 
   const canManageCameras = useMemo(() =>
     ['admin', 'technicien'].includes(user?.role || ''), [user?.role]
@@ -123,7 +143,6 @@ const CamerasView: React.FC = () => {
     setSubmitError(null)
     
     try {
-      // Validation côté client
       if (!newCamera.numeroSerie.trim()) {
         setSubmitError('Le numéro de série est requis')
         return
@@ -141,14 +160,12 @@ const CamerasView: React.FC = () => {
         return
       }
 
-      // Validation format IP
       const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
       if (!ipRegex.test(newCamera.adresseIP)) {
         setSubmitError('Format d\'adresse IP invalide')
         return
       }
 
-      // Préparer les données pour l'API (objet simple, pas FormData)
       const cameraData = {
         numeroSerie: newCamera.numeroSerie.trim(),
         adresseIP: newCamera.adresseIP.trim(),
@@ -160,7 +177,6 @@ const CamerasView: React.FC = () => {
       const result = await createCamera(cameraData)
       
       if (result.success) {
-        // Reset form
         setNewCamera({
           numeroSerie: '',
           adresseIP: '',
@@ -173,8 +189,7 @@ const CamerasView: React.FC = () => {
         setShowAddForm(false)
         setSubmitError(null)
         
-        // Recharger les caméras pour afficher la nouvelle
-        await fetchCameras()
+        await fetchCameras({ zone: zoneFilter || undefined })
       } else {
         setSubmitError(result.error || 'Erreur lors de la création de la caméra')
       }
@@ -232,15 +247,34 @@ const CamerasView: React.FC = () => {
               <p className="text-secondary-600 mt-1">Installation, maintenance et surveillance</p>
             </div>
             
-            {canManageCameras && (
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="btn-primary flex items-center space-x-2 mt-4 sm:mt-0"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Ajouter caméra</span>
-              </button>
-            )}
+            <div className="mt-4 sm:mt-0 flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-secondary-600" />
+                <select
+                  className="input-field"
+                  value={zoneFilter}
+                  onChange={async (e) => {
+                    setZoneFilter(e.target.value)
+                    await fetchCameras({ zone: e.target.value || undefined })
+                  }}
+                >
+                  <option value="">Toutes les zones</option>
+                  <option value="Zone Portuaire Nord">Zone Portuaire Nord</option>
+                  <option value="Zone Portuaire Sud">Zone Portuaire Sud</option>
+                  <option value="Zone Administrative">Zone Administrative</option>
+                  <option value="Zone de Stockage">Zone de Stockage</option>
+                </select>
+              </div>
+              {canManageCameras && (
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="btn-primary flex items-center space-x-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Ajouter caméra</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Status Summary */}
@@ -278,7 +312,7 @@ const CamerasView: React.FC = () => {
 
           {/* Cameras Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {cameras.map((camera) => (
+            {filteredCameras.map((camera) => (
               <div
                 key={camera.idCamera}
                 className="card hover:shadow-lg transition-shadow duration-200"
@@ -330,12 +364,21 @@ const CamerasView: React.FC = () => {
                     Voir
                   </button>
                   {canManageCameras && (
-                    <button 
-                      onClick={() => editCamera(camera)}
-                      className="btn-secondary text-sm"
-                    >
-                      <Settings className="w-4 h-4" />
-                    </button>
+                    <>
+                      <button 
+                        onClick={() => editCamera(camera)}
+                        className="btn-secondary text-sm"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => deleteCamera(camera.idCamera)}
+                        className="btn-secondary text-sm"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -599,16 +642,25 @@ const CamerasView: React.FC = () => {
                     {/* Actions */}
                     <div className="flex space-x-3 pt-4 border-t">
                       {canManageCameras && (
-                        <button
-                          onClick={() => {
-                            setShowCameraDetails(false)
-                            editCamera(selectedCamera)
-                          }}
-                          className="btn-primary"
-                        >
-                          <Settings className="w-4 h-4 mr-2" />
-                          Modifier
-                        </button>
+                        <>
+                          <button
+                            onClick={() => {
+                              setShowCameraDetails(false)
+                              editCamera(selectedCamera)
+                            }}
+                            className="btn-primary"
+                          >
+                            <Settings className="w-4 h-4 mr-2" />
+                            Modifier
+                          </button>
+                          <button
+                            onClick={() => deleteCamera(selectedCamera.idCamera)}
+                            className="btn-secondary"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Supprimer
+                          </button>
+                        </>
                       )}
                       <button
                         onClick={() => setShowCameraDetails(false)}
