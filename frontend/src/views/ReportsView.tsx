@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useIncidentsStore } from '../stores/incidents'
 import { useAuthStore } from '../stores/auth'
 import { useApi } from '../hooks/useApi'
-import { rapportsAPI, getIncidentPhotoUrl } from '../services/api'
+import { rapportsAPI, getIncidentPhotoUrl, default as api } from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import Header from '../components/layout/Header'
 import { FileText, Download, X, AlertCircle, CheckCircle } from 'lucide-react'
@@ -51,6 +51,15 @@ const ReportsView: React.FC = () => {
     await fetchIncidents({ from: fromDate, to: toDate, zone: zone || undefined })
   }
 
+  const exportIncidentsByDateRange = async (): Promise<Blob> => {
+    const params: any = {}
+    if (fromDate) params.from = fromDate
+    if (toDate) params.to = toDate
+    if (zone) params.zone = zone
+    const response = await api.get('/rapports/incidents/export', { params, responseType: 'blob' })
+    return response.data
+  }
+
   const downloadCSV = async () => {
     if (!canRunRange) {
       setError("Veuillez sélectionner une plage de dates valide.")
@@ -59,8 +68,7 @@ const ReportsView: React.FC = () => {
     setError(null)
     setExporting(true)
     try {
-      const blob = await rapportsAPI.exportIncidentsByDateRange(fromDate, toDate)
-      // adapter au client existant: changeons la signature pour accepter zone
+      const blob = await exportIncidentsByDateRange()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -122,35 +130,34 @@ const ReportsView: React.FC = () => {
   }
 
   const downloadReport = async (incidentId: number) => {
-    try {
-      const report = generatedReports?.find((r: any) => r.idIncident === incidentId)
-      if (report) {
-        const token = localStorage.getItem('token')
-        const response = await fetch(`http://localhost:8000/api/rapports/${report.idRapport}/download`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/pdf',
-          },
-        })
+    if (reportsLoading || !generatedReports) {
+      setError('Les rapports sont en cours de chargement...')
+      return
+    }
 
-        if (response.ok) {
-          const blob = await response.blob()
-          const url = window.URL.createObjectURL(blob)
-          const link = document.createElement('a')
-          link.href = url
-          link.download = `rapport_incident_${incidentId}.pdf`
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-          window.URL.revokeObjectURL(url)
-        } else {
-          throw new Error('Erreur lors du téléchargement')
-        }
+    const report = generatedReports.find((r: any) => r.idIncident === incidentId || r.incident?.idIncident === incidentId)
+    if (!report) {
+      setError('Rapport introuvable pour cet incident')
+      return
+    }
+
+    try {
+      const blob = await rapportsAPI.downloadReport(report.idRapport)
+      if (!(blob instanceof Blob)) {
+        throw new Error('La réponse du serveur n\'est pas un fichier PDF valide')
       }
-    } catch (error) {
+
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `rapport_incident_${incidentId}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (error: any) {
       console.error('Erreur téléchargement:', error)
-      setError('Erreur lors du téléchargement du rapport')
+      setError(error?.message || 'Erreur lors du téléchargement du rapport')
     }
   }
 

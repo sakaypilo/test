@@ -2,7 +2,7 @@ import axios from 'axios'
 
 export type UserRole = 'admin' | 'agent' | 'technicien' | 'responsable'
 
-const API_BASE_URL = 'http://localhost:3001/api'
+export const API_BASE_URL = 'http://localhost:3001/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -178,8 +178,8 @@ export const rapportsAPI = {
     api.post(`/rapports/incidents/${incidentId}`, data).then(res => res.data),
   downloadReport: (reportId: number): Promise<Blob> =>
     api.get(`/rapports/${reportId}/download`, { responseType: 'blob' }).then(res => res.data),
-  exportIncidentsByDateRange: (from: string, to: string): Promise<Blob> =>
-    api.get(`/rapports/incidents/export`, { params: { from, to }, responseType: 'blob' }).then(res => res.data),
+  exportIncidentsByDateRange: (params: { from?: string; to?: string; zone?: string }): Promise<Blob> =>
+    api.get('/rapports/incidents/export', { params, responseType: 'blob' }).then(res => res.data),
 }
 
 export const usersAPI = {

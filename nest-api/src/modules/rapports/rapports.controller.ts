@@ -7,6 +7,8 @@ import {
   UseGuards,
   Req,
   Query,
+  Res,
+  Header,
 } from '@nestjs/common';
 import { RapportsService } from './rapports.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -25,6 +27,22 @@ export class RapportsController {
   @Get('statistics')
   async statistics() {
     return this.rapportsService.getStatistics();
+  }
+
+  @Get(':id/download')
+  async download(@Param('id') id: string, @Res() res: any) {
+    return this.rapportsService.downloadPdf(parseInt(id), res);
+  }
+
+  @Get('incidents/export')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="incidents.csv"')
+  async exportIncidents(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('zone') zone?: string,
+  ) {
+    return this.rapportsService.exportIncidentsCsv({ from, to, zone });
   }
 
   @Post('incidents/:id')
