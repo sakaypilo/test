@@ -2,7 +2,7 @@ import axios from 'axios'
 
 export type UserRole = 'admin' | 'agent' | 'technicien' | 'responsable'
 
-const API_BASE_URL = 'http://localhost:8000/api'
+const API_BASE_URL = 'http://localhost:3001/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -64,6 +64,31 @@ export interface LoginResponse {
     telephone: string
   }
   token: string
+}
+
+export const getApiErrorMessage = (error: any, fallback = 'Une erreur est survenue'): string => {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as any
+
+    if (typeof data?.message === 'string') return data.message
+    if (typeof data?.error === 'string') return data.error
+
+    if (data?.errors && typeof data.errors === 'object') {
+      const firstError = Object.values(data.errors)[0]
+      if (Array.isArray(firstError) && firstError[0]) return firstError[0]
+      if (typeof firstError === 'string') return firstError
+    }
+
+    if (error.response?.status === 403) {
+      return 'Vous n’avez pas les permissions nécessaires pour effectuer cette action.'
+    }
+
+    if (error.response?.status === 401) {
+      return 'Votre session a expiré. Veuillez vous reconnecter.'
+    }
+  }
+
+  return (error as Error)?.message || fallback
 }
 
 export const authAPI = {
@@ -162,8 +187,8 @@ export const usersAPI = {
     api.get('/users', { params }).then(res => res.data),
   getById: (id: number): Promise<ApiResponse> =>
     api.get(`/users/${id}`).then(res => res.data),
-  create: (data: FormData): Promise<ApiResponse> =>
-    api.post('/users', data, { headers: { 'Content-Type': 'multipart/form-data' } }).then(res => res.data),
+  create: (data: any): Promise<ApiResponse> =>
+    api.post('/users', data).then(res => res.data),
   update: (id: number, data: any): Promise<ApiResponse> =>
     api.put(`/users/${id}`, data).then(res => res.data),
   resetPassword: (id: number): Promise<ApiResponse> =>
@@ -186,6 +211,17 @@ export const trashAPI = {
     api.delete(`/trash/${type}/${id}/permanent`).then(res => res.data),
   emptyTrash: (daysOld?: number): Promise<ApiResponse> =>
     api.post('/trash/empty', { days_old: daysOld }).then(res => res.data)
+}
+
+export const getStorageUrl = (path?: string): string | null => {
+  if (!path) return null
+  return `http://localhost:3001/storage/${path}`
+}
+
+export const getIncidentPhotoUrl = (photoPath?: string): string | null => {
+  if (!photoPath) return null
+  if (photoPath.startsWith('http')) return photoPath
+  return `http://localhost:3001/storage/${photoPath}`
 }
 
 export default api

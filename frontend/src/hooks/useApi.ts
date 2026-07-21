@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { getApiErrorMessage } from '../services/api'
 
 interface UseApiOptions {
   immediate?: boolean
@@ -32,7 +33,7 @@ export function useApi<T = any>(
         setError(response.message || 'Une erreur est survenue')
       }
     } catch (err) {
-      setError((err as Error).message || 'Une erreur est survenue')
+      setError(getApiErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -64,13 +65,14 @@ export function useApiList<T = any>(
   const [pagination, setPagination] = useState<any>(null)
   const [params, setParams] = useState(initialParams)
 
-  const fetchData = async (newParams = {}) => {
+  // useCallback stabilise la référence pour éviter des re-renders infinis
+  const fetchData = useCallback(async (newParams: any = {}) => {
     try {
       setLoading(true)
       setError(null)
       const mergedParams = { ...params, ...newParams }
       const response = await apiFunction(mergedParams)
-      
+
       if (response.success) {
         setData(response.data || [])
         setPagination(response.pagination || null)
@@ -79,18 +81,15 @@ export function useApiList<T = any>(
         setError(response.message || 'Une erreur est survenue')
       }
     } catch (err) {
-      setError((err as Error).message || 'Une erreur est survenue')
+      setError(getApiErrorMessage(err))
     } finally {
       setLoading(false)
     }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiFunction])
 
-  const refresh = () => fetchData()
-  const updateParams = (newParams: any) => fetchData(newParams)
-
-  useEffect(() => {
-    fetchData()
-  }, [])
+  const refresh = useCallback(() => fetchData(), [fetchData])
+  const updateParams = useCallback((newParams: any) => fetchData(newParams), [fetchData])
 
   return {
     data,

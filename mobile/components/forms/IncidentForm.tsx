@@ -314,6 +314,12 @@ export default function IncidentForm({
                 <Image
                   source={{ uri: photo }}
                   style={styles.photo}
+                  onError={() => {
+                    Alert.alert(
+                      'Erreur de chargement',
+                      `Impossible d'afficher la photo.\nVérifiez la connexion au serveur ou l'URL:\n${photo}`
+                    );
+                  }}
                 />
                 <TouchableOpacity
                   style={styles.removePhotoButton}

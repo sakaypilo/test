@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useApiList } from '../hooks/useApi'
 import { usersAPI } from '../services/api'
+import { useAuthStore } from '../stores/auth'
 import Sidebar from '../components/layout/Sidebar'
 import Header from '../components/layout/Header'
 import {
@@ -14,12 +15,15 @@ import {
 } from 'lucide-react'
 
 const UsersView: React.FC = () => {
+  const { user } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [changePwdUser, setChangePwdUser] = useState<any>(null)
+  const [pwdError, setPwdError] = useState<string | null>(null)
+  const [pwdSuccess, setPwdSuccess] = useState<string | null>(null)
   const [pwdForm, setPwdForm] = useState({ current_password: '', new_password: '', new_password_confirmation: '' })
 
   const { 
@@ -39,9 +43,14 @@ const UsersView: React.FC = () => {
     motDePasse: ''
   })
 
+  const hasFetched = useRef(false)
+
   useEffect(() => {
-    fetchUsers()
-  }, [])
+    if (user?.role === 'admin' && !hasFetched.current) {
+      hasFetched.current = true
+      fetchUsers()
+    }
+  }, [user?.role])
 
   const getRoleColor = (role: string) => {
     const colors: Record<string, string> = {
@@ -62,19 +71,21 @@ const UsersView: React.FC = () => {
     e.preventDefault()
     setIsSubmitting(true)
     setSubmitError(null)
-    
+
     try {
-      const userData = new FormData()
-      userData.append('matricule', userForm.matricule)
-      userData.append('nom', userForm.nom)
-      userData.append('prenom', userForm.prenom)
-      userData.append('role', userForm.role)
-      userData.append('email', userForm.email)
-      userData.append('telephone', userForm.telephone)
-      userData.append('motDePasse', userForm.motDePasse)
+      // NestJS @Body() attend du JSON, pas du FormData
+      const userData = {
+        matricule: userForm.matricule,
+        nom: userForm.nom,
+        prenom: userForm.prenom,
+        role: userForm.role,
+        email: userForm.email,
+        telephone: userForm.telephone || undefined,
+        motDePasse: userForm.motDePasse,
+      }
 
       const response = await usersAPI.create(userData)
-      
+
       if (response.success) {
         fetchUsers()
         setUserForm({
@@ -86,14 +97,14 @@ const UsersView: React.FC = () => {
           telephone: '',
           motDePasse: ''
         })
-        
         setShowAddForm(false)
         setEditingUser(null)
       } else {
         setSubmitError(response.message || 'Erreur lors de la création de l\'utilisateur')
       }
-    } catch (error) {
-      setSubmitError('Erreur de connexion. Veuillez réessayer.')
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || 'Erreur de connexion. Veuillez réessayer.'
+      setSubmitError(msg)
     } finally {
       setIsSubmitting(false)
     }
@@ -122,38 +133,28 @@ const UsersView: React.FC = () => {
     setSubmitError(null)
 
     try {
-      const userData: any = {
+      const userData = {
         matricule: userForm.matricule,
         nom: userForm.nom,
         prenom: userForm.prenom,
         role: userForm.role,
         email: userForm.email,
-        telephone: userForm.telephone,
-        actif: true
+        ...(userForm.telephone ? { telephone: userForm.telephone } : {}),
       }
 
       const response = await usersAPI.update(editingUser.idUtilisateur, userData)
 
       if (response.success) {
         fetchUsers()
-
         setEditingUser(null)
-        setUserForm({
-          matricule: '',
-          nom: '',
-          prenom: '',
-          role: '',
-          email: '',
-          telephone: '',
-          motDePasse: ''
-        })
-
+        setUserForm({ matricule: '', nom: '', prenom: '', role: '', email: '', telephone: '', motDePasse: '' })
         setShowAddForm(false)
       } else {
         setSubmitError(response.message || 'Erreur lors de la mise à jour de l\'utilisateur')
       }
-    } catch (error) {
-      setSubmitError('Erreur de connexion. Veuillez réessayer.')
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || 'Erreur de connexion. Veuillez réessayer.'
+      setSubmitError(msg)
     } finally {
       setIsSubmitting(false)
     }
@@ -162,30 +163,46 @@ const UsersView: React.FC = () => {
   const openChangePassword = (user: any) => {
     setChangePwdUser(user)
     setPwdForm({ current_password: '', new_password: '', new_password_confirmation: '' })
+    setPwdError(null)
+    setPwdSuccess(null)
   }
 
   const submitChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!changePwdUser) return
 
+    // Validation frontend
+    if (pwdForm.new_password !== pwdForm.new_password_confirmation) {
+      setPwdError('Les mots de passe ne correspondent pas.')
+      return
+    }
+    if (pwdForm.new_password.length < 6) {
+      setPwdError('Le mot de passe doit contenir au moins 6 caractères.')
+      return
+    }
+
     setIsSubmitting(true)
+    setPwdError(null)
+    setPwdSuccess(null)
+
     try {
       const payload: any = {
         new_password: pwdForm.new_password,
-        new_password_confirmation: pwdForm.new_password_confirmation
+        new_password_confirmation: pwdForm.new_password_confirmation,
       }
       if (pwdForm.current_password) payload.current_password = pwdForm.current_password
 
       const res = await usersAPI.changePassword(changePwdUser.idUtilisateur, payload)
       if (res.success) {
-        alert('Mot de passe modifié avec succès')
-        setChangePwdUser(null)
+        setPwdSuccess('Mot de passe modifié avec succès !')
         setPwdForm({ current_password: '', new_password: '', new_password_confirmation: '' })
+        setTimeout(() => setChangePwdUser(null), 1500)
       } else {
-        alert(res.message || 'Erreur lors de la modification du mot de passe')
+        setPwdError(res.message || 'Erreur lors de la modification du mot de passe')
       }
-    } catch (err) {
-      alert('Erreur de connexion lors du changement de mot de passe')
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Erreur de connexion. Veuillez réessayer.'
+      setPwdError(msg)
     } finally {
       setIsSubmitting(false)
     }
@@ -224,6 +241,22 @@ const UsersView: React.FC = () => {
     } catch (error) {
       alert('Erreur de connexion lors du changement de statut')
     }
+  }
+
+  if (user?.role !== 'admin') {
+    return (
+      <div className="flex">
+        <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(false)} />
+        <div className="flex-1 lg:ml-64">
+          <Header onToggleSidebar={() => setSidebarOpen(true)} />
+          <main className="p-6">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-yellow-700">Vous n’avez pas les permissions nécessaires pour accéder à cette page.</p>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
   }
 
   if (usersLoading) {
@@ -406,7 +439,7 @@ const UsersView: React.FC = () => {
                     
                     <div>
                       <label className="block text-sm font-medium text-secondary-700 mb-2">
-                        Matricule *
+                        Matricule * <span className="text-secondary-400 font-normal">(7 chiffres)</span>
                       </label>
                       <input
                         name="matricule"
@@ -415,6 +448,9 @@ const UsersView: React.FC = () => {
                         onChange={handleInputChange}
                         className="input-field"
                         placeholder="Ex: 2024001"
+                        pattern="[0-9]{7}"
+                        maxLength={7}
+                        title="Le matricule doit contenir exactement 7 chiffres"
                         required
                       />
                     </div>
@@ -546,29 +582,49 @@ const UsersView: React.FC = () => {
               <div className="bg-white rounded-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-secondary-900">Changer le mot de passe</h3>
+                    <div>
+                      <h3 className="text-lg font-semibold text-secondary-900">Changer le mot de passe</h3>
+                      <p className="text-sm text-secondary-500">{changePwdUser.prenom} {changePwdUser.nom}</p>
+                    </div>
                     <button onClick={() => setChangePwdUser(null)} className="text-secondary-400 hover:text-secondary-600">
                       <X className="w-5 h-5" />
                     </button>
                   </div>
                   <form onSubmit={submitChangePassword} className="space-y-4">
+                    {/* Message d'erreur inline */}
+                    {pwdError && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                        <p className="text-red-700 text-sm">{pwdError}</p>
+                      </div>
+                    )}
+                    {/* Message de succès inline */}
+                    {pwdSuccess && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <p className="text-green-700 text-sm">{pwdSuccess}</p>
+                      </div>
+                    )}
                     <div>
-                      <label className="block text-sm font-medium text-secondary-700 mb-2">Mot de passe actuel (si applicable)</label>
+                      <label className="block text-sm font-medium text-secondary-700 mb-2">
+                        Mot de passe actuel <span className="text-secondary-400 font-normal">(admin : laisser vide)</span>
+                      </label>
                       <input
                         type="password"
                         value={pwdForm.current_password}
-                        onChange={(e) => setPwdForm({ ...pwdForm, current_password: e.target.value })}
+                        onChange={(e) => { setPwdForm({ ...pwdForm, current_password: e.target.value }); setPwdError(null) }}
                         className="input-field"
-                        placeholder="Votre mot de passe actuel"
+                        placeholder="Mot de passe actuel"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-secondary-700 mb-2">Nouveau mot de passe</label>
+                      <label className="block text-sm font-medium text-secondary-700 mb-2">
+                        Nouveau mot de passe <span className="text-secondary-400 font-normal">(min. 6 caractères)</span>
+                      </label>
                       <input
                         type="password"
                         value={pwdForm.new_password}
-                        onChange={(e) => setPwdForm({ ...pwdForm, new_password: e.target.value })}
+                        onChange={(e) => { setPwdForm({ ...pwdForm, new_password: e.target.value }); setPwdError(null) }}
                         className="input-field"
+                        minLength={6}
                         required
                       />
                     </div>
@@ -577,14 +633,16 @@ const UsersView: React.FC = () => {
                       <input
                         type="password"
                         value={pwdForm.new_password_confirmation}
-                        onChange={(e) => setPwdForm({ ...pwdForm, new_password_confirmation: e.target.value })}
+                        onChange={(e) => { setPwdForm({ ...pwdForm, new_password_confirmation: e.target.value }); setPwdError(null) }}
                         className="input-field"
                         required
                       />
                     </div>
-                    <div className="flex justify-end gap-3">
+                    <div className="flex justify-end gap-3 pt-2">
                       <button type="button" className="btn-secondary" onClick={() => setChangePwdUser(null)}>Annuler</button>
-                      <button type="submit" className="btn-primary" disabled={isSubmitting}>Valider</button>
+                      <button type="submit" className="btn-primary" disabled={isSubmitting}>
+                        {isSubmitting ? 'Enregistrement...' : 'Valider'}
+                      </button>
                     </div>
                   </form>
                 </div>

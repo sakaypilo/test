@@ -64,8 +64,9 @@ const NewIncidentView: React.FC = () => {
     try {
       console.log('Début de soumission du formulaire')
       
-      // Créer la date/heure en format ISO compatible avec MySQL
-      const dateTime = `${form.date} ${form.time}:00`
+      // Créer la date/heure en format ISO compatible avec Prisma
+      const timeValue = form.time.length === 5 ? `${form.time}:00` : form.time
+      const dateTime = `${form.date}T${timeValue}`
       console.log('Date/heure formatée:', dateTime)
       
       const incidentData = new FormData()
@@ -73,15 +74,15 @@ const NewIncidentView: React.FC = () => {
       incidentData.append('typeIncident', form.typeIncident)
       incidentData.append('description', form.description)
       incidentData.append('zone', form.zone)
-      incidentData.append('idCamera', form.idCamera)
+      incidentData.append('idCamera', form.idCamera ? String(form.idCamera) : '')
       
       console.log('Données de base ajoutées à FormData')
       
-      // Ajouter les photos
+      // Ajouter les photos avec leur index de slot
       form.photos.forEach((photo, index) => {
         if (photo) {
-          incidentData.append(`photos[${index}]`, photo)
-          console.log(`Photo ${index} ajoutée:`, photo.name)
+          incidentData.append(`photo${index}`, photo)
+          console.log(`Photo slot ${index} ajoutée:`, photo.name)
         }
       })
       console.log('Photos ajoutées à FormData')

@@ -89,33 +89,27 @@ class IncidentController extends Controller
 
             Log::info('Incident créé en mémoire', $incident->toArray());
 
-            // Traitement des photos si présentes
-            if ($request->hasFile('photos')) {
-                Log::info('Photos détectées', ['count' => count($request->file('photos'))]);
-                
-                // Créer le dossier s'il n'existe pas
-                if (!Storage::disk('public')->exists('incidents')) {
-                    Storage::disk('public')->makeDirectory('incidents');
-                }
-
-                $photos = $request->file('photos');
-                $photoIndex = 1;
-
-                foreach ($photos as $index => $photo) {
-                    if ($photo && $photo->isValid() && $photoIndex <= 6) {
+            // Traitement des photos par slot pour préserver l'ordre
+            $photoFields = [];
+            for ($i = 0; $i < 6; $i++) {
+                $fieldName = "photo{$i}";
+                if ($request->hasFile($fieldName)) {
+                    $photo = $request->file($fieldName);
+                    if ($photo && $photo->isValid()) {
                         try {
-                            $filename = 'incident_' . time() . '_' . $photoIndex . '.' . $photo->getClientOriginalExtension();
+                            $filename = 'incident_' . time() . '_' . ($i + 1) . '.' . $photo->getClientOriginalExtension();
                             $path = $photo->storeAs('incidents', $filename, 'public');
-                            
-                            $incident->{'photo' . $photoIndex} = $path;
-                            Log::info("Photo {$photoIndex} sauvegardée", ['path' => $path]);
-                            
-                            $photoIndex++;
+                            $photoFields["photo" . ($i + 1)] = $path;
+                            Log::info("Photo slot {$i} sauvegardée", ['path' => $path]);
                         } catch (\Exception $e) {
-                            Log::error("Erreur sauvegarde photo {$photoIndex}", ['error' => $e->getMessage()]);
+                            Log::error("Erreur sauvegarde photo slot {$i}", ['error' => $e->getMessage()]);
                         }
                     }
                 }
+            }
+
+            if (!empty($photoFields)) {
+                $incident->update($photoFields);
             }
 
             // Sauvegarder l'incident
@@ -262,29 +256,24 @@ class IncidentController extends Controller
                 'typeIncident', 'description', 'zone', 'dateHeure'
             ]));
 
-            // Traitement des nouvelles photos si présentes
-            if ($request->hasFile('photos')) {
-                $photos = $request->file('photos');
-                $photoIndex = 1;
-
-                foreach ($photos as $photo) {
-                    if ($photo && $photo->isValid() && $photoIndex <= 6) {
-                        // Supprimer l'ancienne photo si elle existe
-                        $oldPhotoField = "photo{$photoIndex}";
+            // Traitement des nouvelles photos par slot pour préserver l'ordre
+            for ($i = 0; $i < 6; $i++) {
+                $fieldName = "photo{$i}";
+                if ($request->hasFile($fieldName)) {
+                    $photo = $request->file($fieldName);
+                    if ($photo && $photo->isValid()) {
+                        $oldPhotoField = "photo" . ($i + 1);
                         if ($incident->$oldPhotoField) {
                             Storage::disk('public')->delete($incident->$oldPhotoField);
                         }
 
-                        // Sauvegarder la nouvelle photo
-                        $filename = 'incident_' . time() . '_' . $photoIndex . '.' . $photo->getClientOriginalExtension();
+                        $filename = 'incident_' . time() . '_' . ($i + 1) . '.' . $photo->getClientOriginalExtension();
                         $path = $photo->storeAs('incidents', $filename, 'public');
                         $incident->$oldPhotoField = $path;
-
-                        $photoIndex++;
                     }
                 }
-                $incident->save();
             }
+            $incident->save();
 
             return response()->json([
                 'success' => true,

@@ -1,0 +1,224 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  idUtilisateur     Int       @id @default(autoincrement()) @map("id_utilisateur")
+  matricule         String    @unique 
+  nom               String    
+  prenom            String    
+  motDePasse        String    @map("mot_de_passe") 
+  role              String    
+  email             String    @unique 
+  telephone         String?   
+  actif             Boolean   @default(true)
+  emailVerifiedAt   DateTime? @map("email_verified_at")
+  rememberToken     String?   @map("remember_token")
+  deletedAt         DateTime? @map("deleted_at")
+  deletedBy         Int?      @map("deleted_by")
+  deletionReason    String?   @map("deletion_reason") 
+  restoredAt        DateTime? @map("restored_at")
+  restoredBy        Int?      @map("restored_by")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  cameras           Camera[]         @relation("camera_technicien")
+  mutationCameras   MutationCamera[] @relation("camera_technicien")
+  incidents         Incident[] @relation("incident_user")
+  incidentsValidated Incident[] @relation("incident_validated_by")
+  vols              Vol[] @relation("vol_user")
+  volsValidated     Vol[] @relation("vol_validated_by")
+  connexions        Connexion[]
+  interpellations   Interpellation[]
+  rapports          Rapport[]
+
+  @@map("users")
+}
+
+model Camera {
+  idCamera         Int              @id @default(autoincrement()) @map("id_camera")
+  numeroSerie      String           @unique  @map("numero_serie")
+  adresseIP        String           @unique  @map("adresse_ip")
+  zone             String           
+  emplacement      String           
+  statut           String           @default("actif") 
+  dateInstallation DateTime         @map("date_installation")
+  idTechnicien     Int?             @map("id_technicien")
+  actif            Boolean          @default(true)
+  deletedAt        DateTime?        @map("deleted_at")
+  deletedBy        Int?             @map("deleted_by")
+  deletionReason   String?          @map("deletion_reason") 
+  restoredAt       DateTime?        @map("restored_at")
+  restoredBy       Int?             @map("restored_by")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  technicien       User?            @relation("camera_technicien", fields: [idTechnicien], references: [idUtilisateur], onDelete: SetNull)
+  mutationCameras  MutationCamera[]
+  incidents        Incident[]
+  vols             Vol[]
+
+  @@map("cameras")
+}
+
+model MutationCamera {
+  idMutation        Int      @id @default(autoincrement()) @map("id_mutation")
+  dateHeureMutation DateTime @map("date_heure_mutation")
+  ancienEmplacement String    @map("ancien_emplacement")
+  nouvelEmplacement String    @map("nouvel_emplacement")
+  motif             String   
+  idCamera          Int      @map("id_camera")
+  idTechnicien      Int      @map("id_technicien")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  camera            Camera   @relation(fields: [idCamera], references: [idCamera], onDelete: Cascade)
+  technicien        User     @relation("camera_technicien", fields: [idTechnicien], references: [idUtilisateur], onDelete: Cascade)
+
+  @@map("mutation_cameras")
+}
+
+model Incident {
+  idIncident         Int        @id @default(autoincrement()) @map("id_incident")
+  dateHeure          DateTime   @map("date_heure")
+  typeIncident       String      @map("type_incident")
+  description        String     
+  zone               String     
+  photo1             String?
+  photo2             String?
+  photo3             String?
+  photo4             String?
+  photo5             String?
+  photo6             String?
+  statut             String     @default("en_attente") 
+  idCamera           Int        @map("id_camera")
+  idUtilisateur      Int        @map("id_utilisateur")
+  validePar          Int?       @map("valide_par")
+  dateValidation     DateTime?  @map("date_validation")
+  commentaireValidation String?  @map("commentaire_validation")
+  actif              Boolean    @default(true)
+  deletedAt          DateTime?  @map("deleted_at")
+  deletedBy          Int?       @map("deleted_by")
+  deletionReason     String?    @map("deletion_reason") 
+  restoredAt         DateTime?  @map("restored_at")
+  restoredBy         Int?       @map("restored_by")
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
+
+  camera             Camera     @relation(fields: [idCamera], references: [idCamera], onDelete: Cascade)
+  utilisateur        User       @relation("incident_user", fields: [idUtilisateur], references: [idUtilisateur], onDelete: Cascade)
+  validateur         User?      @relation("incident_validated_by", fields: [validePar], references: [idUtilisateur], onDelete: SetNull)
+  rapports           Rapport[]
+
+  @@map("incidents")
+}
+
+model Vol {
+  idVol              Int        @id @default(autoincrement()) @map("id_vol")
+  dateHeure          DateTime   @map("date_heure")
+  description        String     
+  objetsVoles        String      @map("objets_volés")
+  photo1             String?
+  photo2             String?
+  photo3             String?
+  photo4             String?
+  photo5             String?
+  photo6             String?
+  statut             String     @default("en_attente") 
+  idCamera           Int        @map("id_camera")
+  idUtilisateur      Int        @map("id_utilisateur")
+  validePar          Int?       @map("valide_par")
+  dateValidation     DateTime?  @map("date_validation")
+  commentaireValidation String?  @map("commentaire_validation")
+  actif              Boolean    @default(true)
+  deletedAt          DateTime?  @map("deleted_at")
+  deletedBy          Int?       @map("deleted_by")
+  deletionReason     String?    @map("deletion_reason") 
+  restoredAt         DateTime?  @map("restored_at")
+  restoredBy         Int?       @map("restored_by")
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
+
+  camera             Camera     @relation(fields: [idCamera], references: [idCamera], onDelete: Cascade)
+  utilisateur        User       @relation("vol_user", fields: [idUtilisateur], references: [idUtilisateur], onDelete: Cascade)
+  validateur         User?      @relation("vol_validated_by", fields: [validePar], references: [idUtilisateur], onDelete: SetNull)
+  rapports           Rapport[]
+
+  @@map("vols")
+}
+
+model Personne {
+  idPersonne     Int             @id @default(autoincrement()) @map("id_personne")
+  nom            String          
+  prenom         String          
+  CIN            String          @unique 
+  statut         String          
+  photo          String?
+  actif          Boolean         @default(true)
+  deletedAt      DateTime?       @map("deleted_at")
+  deletedBy      Int?            @map("deleted_by")
+  deletionReason String?         @map("deletion_reason") 
+  restoredAt     DateTime?       @map("restored_at")
+  restoredBy     Int?            @map("restored_by")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  interpellations Interpellation[]
+
+  @@map("personnes")
+}
+
+model Interpellation {
+  idInterpellation Int      @id @default(autoincrement()) @map("id_interpellation")
+  dateHeure        DateTime @map("date_heure")
+  faitAssocie      String    @map("fait_associé")
+  idPersonne       Int      @map("id_personne")
+  idUtilisateur    Int      @map("id_utilisateur")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  personne         Personne @relation(fields: [idPersonne], references: [idPersonne], onDelete: Cascade)
+  utilisateur      User     @relation(fields: [idUtilisateur], references: [idUtilisateur], onDelete: Cascade)
+
+  @@map("interpellations")
+}
+
+model Rapport {
+  idRapport    Int            @id @default(autoincrement()) @map("id_rapport")
+  typeRapport  String          @map("type_rapport")
+  contenu      String         
+  fichierPDF   String?        @map("fichier_pdf")
+  dateCreation DateTime       @map("date_creation")
+  validePar    Int            @map("valide_par")
+  idIncident   Int?           @map("id_incident")
+  idVol        Int?           @map("id_vol")
+  observations String?        
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  validateur   User           @relation(fields: [validePar], references: [idUtilisateur], onDelete: Cascade)
+  incident     Incident?      @relation(fields: [idIncident], references: [idIncident], onDelete: SetNull)
+  vol          Vol?           @relation(fields: [idVol], references: [idVol], onDelete: SetNull)
+
+  @@map("rapports")
+}
+
+model Connexion {
+  idConnexion   Int      @id @default(autoincrement()) @map("id_connexion")
+  dateHeure     DateTime @map("date_heure")
+  adresseIP     String    @map("adresse_ip")
+  succes        Boolean  @default(true)
+  userAgent     String?  @map("user_agent")
+  idUtilisateur Int?     @map("id_utilisateur")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  utilisateur   User?    @relation(fields: [idUtilisateur], references: [idUtilisateur], onDelete: Cascade)
+
+  @@map("connexions")
+}

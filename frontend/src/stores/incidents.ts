@@ -7,7 +7,13 @@ export interface Incident {
   typeIncident: string
   description: string
   zone: string
-  photos: string[]
+  photos?: string[]
+  photo1?: string
+  photo2?: string
+  photo3?: string
+  photo4?: string
+  photo5?: string
+  photo6?: string
   idCamera: number
   idUtilisateur: number
   statut: 'en_attente' | 'valide' | 'rejete'
@@ -74,14 +80,14 @@ export const useIncidentsStore = create<IncidentsState>((set, get) => ({
     try {
       const response = await incidentsAPI.create(formData)
       if (response.success) {
-        // Recharger la liste des incidents
         get().fetchIncidents()
         return { success: true }
       } else {
         return { success: false, error: response.message }
       }
-    } catch (error) {
-      return { success: false, error: (error as Error).message }
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error.message || 'Erreur lors de la création de l\'incident'
+      return { success: false, error: message }
     }
   },
   validateIncident: async (id: number) => {

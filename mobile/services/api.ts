@@ -7,7 +7,7 @@ function resolveApiBaseUrl(): string {
   let url =
     ((Constants.expoConfig?.extra as any)?.apiUrl as string) ||
     process.env.EXPO_PUBLIC_API_URL ||
-    'http://localhost:8000/api';
+    'http://localhost:3001/api';
 
   // Replace localhost with Android emulator loopback
   if (Platform.OS === 'android') {

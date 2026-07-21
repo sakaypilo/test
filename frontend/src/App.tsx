@@ -70,7 +70,7 @@ function App() {
         />
         <Route 
           path="/users" 
-          element={token ? <UsersView /> : <Navigate to="/login" />} 
+          element={token && user?.role === 'admin' ? <UsersView /> : <Navigate to={token ? '/' : '/login'} />} 
         />
       </Routes>
     </div>

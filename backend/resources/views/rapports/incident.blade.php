@@ -254,8 +254,15 @@
             Nombre de photos jointes : {{ count($incident->photos) }}
         </div>
         @if($incident->photos)
-            <div style="margin-top: 10px; font-size: 10px; color: #666;">
-                Les photos sont archivées dans le système et disponibles en version numérique.
+            <div style="margin-top: 10px;">
+                @foreach($incident->photos as $photo)
+                    @php
+                        $filePath = public_path('incidents/' . $photo);
+                    @endphp
+                    @if(file_exists($filePath))
+                        <img src="{{ $filePath }}" style="max-width: 280px; max-height: 200px; margin: 8px 4px; border: 1px solid #ddd; border-radius: 4px;" />
+                    @endif
+                @endforeach
             </div>
         @endif
     </div>

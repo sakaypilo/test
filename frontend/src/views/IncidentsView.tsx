@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useIncidentsStore } from '../stores/incidents'
 import { useAuthStore } from '../stores/auth'
+import { getIncidentPhotoUrl } from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import Header from '../components/layout/Header'
 import DeleteConfirmModal from '../components/ui/DeleteConfirmModal'
@@ -472,14 +473,43 @@ const IncidentsView: React.FC = () => {
                       </div>
                     </div>
                     
-                    <div>
-                      <label className="block text-sm font-medium text-secondary-700">Caméra</label>
-                      <p className="text-secondary-900">
-                        {selectedIncident.cameraInfo?.numeroSerie} - 
-                        {selectedIncident.cameraInfo?.emplacement}
-                      </p>
-                    </div>
-                  </div>
+                     <div>
+                       <label className="block text-sm font-medium text-secondary-700">Caméra</label>
+                       <p className="text-secondary-900">
+                         {selectedIncident.cameraInfo?.numeroSerie} - 
+                         {selectedIncident.cameraInfo?.emplacement}
+                       </p>
+                     </div>
+
+                     {(() => {
+                       const photos = [
+                         selectedIncident.photo1,
+                         selectedIncident.photo2,
+                         selectedIncident.photo3,
+                         selectedIncident.photo4,
+                         selectedIncident.photo5,
+                         selectedIncident.photo6,
+                       ].filter(Boolean)
+                       if (!photos.length) return null
+                       return (
+                         <div>
+                           <label className="block text-sm font-medium text-secondary-700 mb-2">
+                             Photos jointes
+                           </label>
+                            <div className="grid grid-cols-3 gap-3">
+                              {photos.map((photo: string, idx: number) => (
+                                <img
+                                  key={idx}
+                                  src={getIncidentPhotoUrl(photo) || ''}
+                                  alt={`Photo ${idx + 1}`}
+                                  className="w-full h-32 object-cover rounded-lg border border-secondary-200"
+                                />
+                              ))}
+                            </div>
+                         </div>
+                       )
+                     })()}
+                   </div>
                 </div>
               </div>
             </div>

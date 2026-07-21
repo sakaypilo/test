@@ -133,9 +133,8 @@ export default function IncidentDetailsScreen() {
             onPress={handleBack}
             variant="outline"
             style={styles.backButton}
-          >
-            <ArrowLeft size={20} color={colors.white} />
-          </Button>
+            icon={<ArrowLeft size={20} color={colors.white} />}
+          />
           <Text style={styles.headerTitle}>
             {!isInitialized ? 'Chargement...' : 'Incident non trouvé'}
           </Text>

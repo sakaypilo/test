@@ -119,6 +119,14 @@ const PersonsView: React.FC = () => {
         } else {
           throw new Error(personResponse.message || 'Erreur lors de la création de la personne')
         }
+      } else {
+        const interpellationResponse = await personnesAPI.addInterpellation(existingPerson.idPersonne, {
+          faitAssocie: newInterpellation.faitAssocie,
+        })
+        if (!interpellationResponse.success) {
+          throw new Error(interpellationResponse.message || 'Erreur lors de l\'ajout de l\'interpellation')
+        }
+        fetchPersons()
       }
       
       setNewPerson({

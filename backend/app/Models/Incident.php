@@ -75,7 +75,7 @@ class Incident extends Model
         for ($i = 1; $i <= 6; $i++) {
             $photo = $this->{"photo$i"};
             if ($photo) {
-                $photos[] = $photo;
+                $photos[] = basename($photo);
             }
         }
         return $photos;

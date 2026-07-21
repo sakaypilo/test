@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useIncidentsStore } from '../stores/incidents'
 import { useAuthStore } from '../stores/auth'
 import { useApi } from '../hooks/useApi'
-import { rapportsAPI } from '../services/api'
+import { rapportsAPI, getIncidentPhotoUrl } from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import Header from '../components/layout/Header'
 import { FileText, Download, X, AlertCircle, CheckCircle } from 'lucide-react'
@@ -59,7 +59,7 @@ const ReportsView: React.FC = () => {
     setError(null)
     setExporting(true)
     try {
-      const blob = await rapportsAPI.exportIncidentsByDateRange(fromDate, toDate + '', zone || undefined as any)
+      const blob = await rapportsAPI.exportIncidentsByDateRange(fromDate, toDate)
       // adapter au client existant: changeons la signature pour accepter zone
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -448,10 +448,29 @@ const ReportsView: React.FC = () => {
                           {selectedIncident.cameraInfo?.emplacement || 'N/A'}
                         </div>
                         
-                        <div>
-                          <span className="font-medium">Photos jointes:</span>
-                          {selectedIncident.photos?.length || 0} photo(s)
-                        </div>
+                        {(() => {
+                          const photos = [
+                            selectedIncident.photo1,
+                            selectedIncident.photo2,
+                            selectedIncident.photo3,
+                            selectedIncident.photo4,
+                            selectedIncident.photo5,
+                            selectedIncident.photo6,
+                          ].filter(Boolean)
+                          if (!photos.length) return <span>Aucune photo</span>
+                          return (
+                            <div className="grid grid-cols-3 gap-3 mt-2">
+                              {photos.map((photo: string, idx: number) => (
+                                <img
+                                  key={idx}
+                                  src={getIncidentPhotoUrl(photo) || ''}
+                                  alt={`Photo ${idx + 1}`}
+                                  className="w-full h-24 object-cover rounded border border-secondary-200"
+                                />
+                              ))}
+                            </div>
+                          )
+                        })()}
                         
                         <div>
                           <span className="font-medium">Validé par:</span>
